@@ -36,4 +36,10 @@ export type ServerToClientEvent =
         readBy: string;
         readAt: number;
       };
+    }
+  | {
+      type: 'pong';
+      payload: {
+        timestamp: number;
+      };
     };

@@ -3,7 +3,8 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { config } from '../config/env.js';
 import { handleConnection } from './connectionHandler.js';
 import { handleMessage } from './messageHandler.js';
-import { logInfo, logError, logWarn } from '../utils/logger.js';
+import { handleHeartbeat } from './heartbeatHandler.js';
+import { logInfo, logError } from '../utils/logger.js';
 
 /**
  * WebSocket server implementation using Socket.IO
@@ -54,6 +55,9 @@ export class WebSocketServer {
 
     // Handle connection hydration and logging
     handleConnection(socket, this.io);
+
+    // Handle heartbeat (ping/pong)
+    handleHeartbeat(socket);
 
     // Handle client messages (Socket.IO custom event: send_message)
     socket.on('send_message', (data: unknown) => {

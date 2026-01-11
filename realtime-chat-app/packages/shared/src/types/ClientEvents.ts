@@ -30,4 +30,10 @@ export type ClientToServerEvent =
       payload: {
         userId: string;
       };
+    }
+  | {
+      type: 'ping';
+      payload: {
+        timestamp: number;
+      };
     };

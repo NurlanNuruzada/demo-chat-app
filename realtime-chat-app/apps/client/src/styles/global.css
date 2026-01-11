@@ -66,11 +66,22 @@ body {
   height: 8px;
   border-radius: 50%;
   background-color: #ccc;
+  transition: background-color 0.2s;
 }
 
 .connection-status-indicator-connected {
   background-color: #4caf50;
   animation: pulse 2s infinite;
+}
+
+.connection-status-indicator-connecting {
+  background-color: #ff9800;
+  animation: pulse 1s infinite;
+}
+
+.connection-status-indicator-reconnecting {
+  background-color: #ff9800;
+  animation: pulse 1s infinite;
 }
 
 .connection-status-indicator-disconnected {
@@ -83,6 +94,20 @@ body {
 
 .connection-status-text {
   color: #666;
+  transition: color 0.2s;
+}
+
+.connection-status-connected .connection-status-text {
+  color: #4caf50;
+}
+
+.connection-status-connecting .connection-status-text,
+.connection-status-reconnecting .connection-status-text {
+  color: #ff9800;
+}
+
+.connection-status-disconnected .connection-status-text {
+  color: #999;
 }
 
 .connection-status-error .connection-status-text {

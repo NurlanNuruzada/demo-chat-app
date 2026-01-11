@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { IMessage, IErrorMessage } from '@chat-app/shared';
 import { useChatSocket } from '../hooks/useChatSocket';
+import { ConnectionStatus as ConnectionStatusType } from '../types/index.js';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ConnectionStatus } from './ConnectionStatus';
@@ -15,8 +16,9 @@ export function ChatWindow(): JSX.Element {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Handle history (replace messages)
+  // Handle history (REPLACE messages - critical for reconnection)
   const handleHistory = useCallback((historyMessages: IMessage[]) => {
+    // Overwrite, don't append - prevents duplicates on reconnect
     setMessages(historyMessages);
   }, []);
 
@@ -33,16 +35,19 @@ export function ChatWindow(): JSX.Element {
   }, []);
 
   // Handle status change
-  const handleStatusChange = useCallback((connected: boolean) => {
-    if (!connected) {
-      setError('Connection lost. Reconnecting...');
-    } else {
+  const handleStatusChange = useCallback((status: ConnectionStatusType) => {
+    // Clear error when connected
+    if (status === 'connected') {
       setError(null);
+    } else if (status === 'reconnecting') {
+      setError('Connection lost. Reconnecting...');
+    } else if (status === 'disconnected') {
+      setError('Disconnected from server');
     }
   }, []);
 
   // WebSocket hook
-  const { connected, sendMessage } = useChatSocket({
+  const { status, connected, sendMessage, error: socketError } = useChatSocket({
     onHistory: handleHistory,
     onMessage: handleMessage,
     onError: handleError,
@@ -58,11 +63,14 @@ export function ChatWindow(): JSX.Element {
     [sendMessage]
   );
 
+  // Display error from socket or local state
+  const displayError = socketError?.message || error;
+
   return (
     <div className="chat-window">
       <div className="chat-window-header">
         <h1>Chat App</h1>
-        <ConnectionStatus connected={connected} error={error} />
+        <ConnectionStatus status={status} error={displayError} />
       </div>
       <MessageList messages={messages} />
       <ChatInput
@@ -72,7 +80,7 @@ export function ChatWindow(): JSX.Element {
         onDraftChange={setDraft}
         onSend={handleSend}
         disabled={!connected}
-        error={error}
+        error={displayError}
       />
     </div>
   );
