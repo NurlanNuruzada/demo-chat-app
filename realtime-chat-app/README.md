@@ -1,3 +1,6 @@
+# demo-chat-app
+A real-time chat application built with TypeScript, Node.js, React, and WebSockets. This is a minimal, single-page application featuring one shared chat room where multiple users can communicate in real-time.
+
 # Real-time Chat Application
 
 A real-time chat application built with Socket.IO, React, TypeScript, and a monorepo structure.
@@ -92,6 +95,38 @@ cp .env.example .env
 - Automatic whitespace trimming
 
 ## 🐳 Docker
+
+### Quick Start with Docker
+
+1. **Build and run everything:**
+   ```bash
+   docker compose up --build
+   ```
+
+2. **Access the application:**
+   - Frontend: http://localhost:80 (or http://localhost)
+   - Backend: http://localhost:3001
+
+3. **Stop everything:**
+   ```bash
+   docker compose down
+   ```
+
+4. **View logs:**
+   ```bash
+   docker compose logs -f
+   ```
+
+### Docker Services
+
+- **server**: Node.js backend with Socket.IO
+- **client**: Nginx serving the built React frontend
+
+The Docker setup uses multi-stage builds for optimal image sizes and includes nginx for serving the frontend static files.
+
+### Development with Docker
+
+For development, you can still use the npm scripts (see Development section below). Docker is primarily for production deployments or testing the full stack.
 
 ```bash
 docker-compose up

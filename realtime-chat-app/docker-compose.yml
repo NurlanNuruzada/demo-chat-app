@@ -1,24 +1,32 @@
-version: '3.8'
-
 services:
   server:
     build:
-      context: ./apps/server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: chat-app-server
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=production
-      - SERVER_PORT=3001
-      - CORS_ORIGIN=http://localhost:5173
-    restart: unless-stopped
+      NODE_ENV: production
+      SERVER_PORT: 3001
+      CORS_ORIGIN: "*"
+    networks:
+      - chat-network
 
   client:
     build:
-      context: ./apps/client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/client/Dockerfile
+      args:
+        VITE_SERVER_URL: http://localhost:3001
+    container_name: chat-app-client
     ports:
-      - "5173:5173"
+      - "80:80"
     depends_on:
       - server
-    restart: unless-stopped
+    networks:
+      - chat-network
+
+networks:
+  chat-network:
+    driver: bridge

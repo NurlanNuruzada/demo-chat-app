@@ -1,0 +1,27 @@
+node_modules
+npm-debug.log
+dist
+build
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.git
+.gitignore
+README.md
+.vscode
+.idea
+coverage
+.nyc_output
+
+# Client specific
+apps/client/dist
+apps/client/.vite
+
+# Server specific
+apps/server/dist
+apps/server/data
+
+# Shared specific
+packages/shared/dist

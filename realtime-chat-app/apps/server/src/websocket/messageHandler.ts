@@ -62,6 +62,17 @@ export function handleMessage(
     // Sanitize message (trim whitespace)
     const sanitizedEvent = sanitizeMessage(event);
 
+    // Type guard: ensure this is a send_message event
+    if (sanitizedEvent.type !== 'send_message') {
+      const errorMessage: IErrorMessage = {
+        type: 'error',
+        code: 'INVALID_EVENT_TYPE',
+        message: `Expected 'send_message' event, got '${sanitizedEvent.type}'`,
+      };
+      sendError(socket, errorMessage);
+      return;
+    }
+
     // Create server-side message object
     const message: IMessage = {
       id: uuidv4(),
