@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { IMessage, ServerToClientEvent, IErrorMessage, ClientToServerEvent } from '@chat-app/shared';
 import { ConnectionStatus } from '../types/index.js';
+import { getDefaultServerUrl, shouldFilterError } from '../utils/socketHelpers';
+import { SOCKET_CONFIG, ERROR_MESSAGES } from '../utils/constants';
 
 interface UseChatSocketOptions {
   url?: string;
@@ -27,9 +29,7 @@ interface UseChatSocketReturn {
  */
 export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocketReturn {
   const {
-    url = import.meta.env.VITE_SERVER_URL || (typeof window !== 'undefined' 
-      ? `${window.location.protocol}//${window.location.hostname}:3001`
-      : 'http://localhost:3001'),
+    url = getDefaultServerUrl(),
     enabled = true,
     onMessage,
     onHistory,
@@ -63,7 +63,7 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
         const errorMessage: IErrorMessage = {
           type: 'error',
           code: 'NOT_CONNECTED',
-          message: 'Cannot send message: not connected to server',
+          message: ERROR_MESSAGES.NOT_CONNECTED,
         };
         setError(errorMessage);
         onError?.(errorMessage);
@@ -102,27 +102,23 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
     const socket = io(url, {
       transports: ['polling', 'websocket'],
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity, // Keep trying to reconnect
+      reconnectionDelay: SOCKET_CONFIG.RECONNECTION_DELAY,
+      reconnectionDelayMax: SOCKET_CONFIG.RECONNECTION_DELAY_MAX,
+      reconnectionAttempts: SOCKET_CONFIG.RECONNECTION_ATTEMPTS,
     });
 
     socketRef.current = socket;
 
     // Connection event
     socket.on('connect', () => {
-      console.log('Socket connected');
-      setError(null); // Clear any previous errors
+      setError(null);
       updateStatus('connected');
     });
 
     // Disconnect event
-    socket.on('disconnect', (reason: string) => {
-      console.log('Socket disconnected:', reason);
+    socket.on('disconnect', () => {
       if (!isManualDisconnectRef.current) {
-        // Server disconnected or connection lost - will auto-reconnect
         updateStatus('reconnecting');
-        // Clear error on disconnect - Socket.IO will handle reconnection
         setError(null);
       } else {
         updateStatus('disconnected');
@@ -131,57 +127,69 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
 
     // Connection error
     socket.on('connect_error', (err: Error) => {
-      console.error('Connection error:', err);
-      // Don't show technical errors like "xhr poll error" to users
-      // Socket.IO will automatically retry reconnection
       updateStatus('reconnecting');
-      // Only show error if it's not a connection retry error
-      if (!err.message.includes('xhr poll error') && !err.message.includes('websocket error')) {
+      // Only show error if it's not a technical connection retry error
+      if (!shouldFilterError(err.message)) {
         const errorMessage: IErrorMessage = {
           type: 'error',
           code: 'CONNECTION_ERROR',
-          message: 'Connection lost. Reconnecting...',
+          message: ERROR_MESSAGES.CONNECTION_LOST,
         };
         setError(errorMessage);
         onError?.(errorMessage);
       }
     });
 
+    /**
+     * Handle server event with type safety
+     */
+    const handleServerEvent = <T extends ServerToClientEvent>(
+      data: unknown,
+      eventType: T['type'],
+      handler?: (payload: T['payload']) => void
+    ): void => {
+      try {
+        const event = data as T;
+        if (event?.type === eventType) {
+          handler?.(event.payload);
+        }
+      } catch {
+        // Silently ignore parsing errors
+      }
+    };
+
     // History event
     socket.on('history', (data: unknown) => {
-      try {
-        const event = data as ServerToClientEvent;
-        if (event && event.type === 'history') {
-          onHistory?.(event.payload.messages);
+      handleServerEvent<Extract<ServerToClientEvent, { type: 'history' }>>(
+        data,
+        'history',
+        (payload) => {
+          onHistory?.(payload.messages);
         }
-      } catch (err) {
-        console.error('Error handling history event:', err);
-      }
+      );
     });
 
     // New message event
     socket.on('new_message', (data: unknown) => {
-      try {
-        const event = data as ServerToClientEvent;
-        if (event && event.type === 'new_message') {
-          onMessage?.(event.payload.message);
+      handleServerEvent<Extract<ServerToClientEvent, { type: 'new_message' }>>(
+        data,
+        'new_message',
+        (payload) => {
+          onMessage?.(payload.message);
         }
-      } catch (err) {
-        console.error('Error handling new_message event:', err);
-      }
+      );
     });
 
     // Error event
     socket.on('error', (data: unknown) => {
-      try {
-        const event = data as ServerToClientEvent;
-        if (event && event.type === 'error') {
-          setError(event.payload);
-          onError?.(event.payload);
+      handleServerEvent<Extract<ServerToClientEvent, { type: 'error' }>>(
+        data,
+        'error',
+        (payload) => {
+          setError(payload);
+          onError?.(payload);
         }
-      } catch (err) {
-        console.error('Error handling error event:', err);
-      }
+      );
     });
 
     // Cleanup on unmount or when disabled

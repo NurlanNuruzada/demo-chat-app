@@ -1,4 +1,6 @@
-import {FormEvent, KeyboardEvent, useEffect, useRef } from 'react';
+import { FormEvent, KeyboardEvent, useEffect, useRef } from 'react';
+import { TEXTAREA_CONFIG } from '../utils/constants';
+import { isValidationError } from '../utils/errorHelpers';
 
 interface ChatInputProps {
   username: string;
@@ -25,8 +27,12 @@ export function ChatInput({
 
   // Allow sending only if message is valid, username exists, and not disabled
   // Validation errors (like message too long) don't prevent editing, only sending
-  const isValidationError = error?.includes('700 characters') || error?.includes('cannot exceed');
-  const canSend = username.trim().length > 0 && draft.trim().length > 0 && !disabled && !isValidationError;
+  const hasValidationError = error ? isValidationError(error) : false;
+  const canSend =
+    username.trim().length > 0 &&
+    draft.trim().length > 0 &&
+    !disabled &&
+    !hasValidationError;
 
   // Auto-resize textarea based on content (like WhatsApp)
   useEffect(() => {
@@ -35,35 +41,27 @@ export function ChatInput({
 
     // Reset height to auto to get the correct scrollHeight
     textarea.style.height = 'auto';
-    
+
     // Calculate new height (min: 1 line, max: ~6 lines)
-    const lineHeight = 22; // Approximately line-height in pixels (1.375rem * 16 = 22px)
-    const minHeight = lineHeight; // 1 line
-    const maxHeight = lineHeight * 6; // ~6 lines (max-height: 6rem = 96px)
-    
+    const { LINE_HEIGHT, MIN_LINES, MAX_LINES, HEIGHT_BUFFER } = TEXTAREA_CONFIG;
+    const minHeight = LINE_HEIGHT * MIN_LINES;
+    const maxHeight = LINE_HEIGHT * MAX_LINES;
+
     const scrollHeight = textarea.scrollHeight;
     const needsScroll = scrollHeight > maxHeight;
     const newHeight = needsScroll ? maxHeight : Math.max(scrollHeight, minHeight);
-    
+
     textarea.style.height = `${newHeight}px`;
-    
-    // Always allow scrolling when content exceeds max height
-    if (needsScroll) {
-      textarea.style.overflowY = 'auto';
-      textarea.style.overflowX = 'hidden';
-    } else {
-      textarea.style.overflowY = 'hidden';
-      textarea.style.overflowX = 'hidden';
-    }
-    
+
+    // Set overflow based on content
+    textarea.style.overflowY = needsScroll ? 'auto' : 'hidden';
+    textarea.style.overflowX = 'hidden';
+
     // Update container alignment: center for single line, flex-end for multiline
     const container = textarea.closest('.chat-input-message-container') as HTMLElement | null;
     if (container) {
-      if (newHeight <= minHeight + 2) {
-        container.style.alignItems = 'center'; // Center vertically for single line
-      } else {
-        container.style.alignItems = 'flex-end'; // Align to bottom for multiline (text at top)
-      }
+      container.style.alignItems =
+        newHeight <= minHeight + HEIGHT_BUFFER ? 'center' : 'flex-end';
     }
   }, [draft]);
 
@@ -77,14 +75,10 @@ export function ChatInput({
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>): void => {
     // Send on Enter, but allow Shift+Enter or Cmd+Enter (Mac) / Ctrl+Enter for new line
-    if (e.key === 'Enter') {
-      const isNewLine = e.shiftKey || e.metaKey || e.ctrlKey;
-      if (!isNewLine && canSend) {
-        e.preventDefault();
-        onSend(username.trim(), draft.trim());
-        onDraftChange('');
-      }
-      // If Shift/Cmd/Ctrl+Enter, allow default behavior (new line)
+    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && canSend) {
+      e.preventDefault();
+      onSend(username.trim(), draft.trim());
+      onDraftChange('');
     }
   };
 

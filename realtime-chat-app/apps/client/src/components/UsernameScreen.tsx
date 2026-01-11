@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import { VALIDATION, ERROR_MESSAGES } from '../utils/constants';
 
 interface UsernameScreenProps {
   onUsernameSubmit: (username: string) => void;
@@ -15,14 +16,14 @@ export function UsernameScreen({ onUsernameSubmit }: UsernameScreenProps): JSX.E
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     const trimmedUsername = username.trim();
-    
+
     if (trimmedUsername.length === 0) {
-      setError('Please enter your name');
+      setError(ERROR_MESSAGES.USERNAME_REQUIRED);
       return;
     }
 
-    if (trimmedUsername.length > 50) {
-      setError('Name must be 50 characters or less');
+    if (trimmedUsername.length > VALIDATION.MAX_USERNAME_LENGTH) {
+      setError(ERROR_MESSAGES.USERNAME_TOO_LONG);
       return;
     }
 
@@ -53,7 +54,7 @@ export function UsernameScreen({ onUsernameSubmit }: UsernameScreenProps): JSX.E
             }}
             className="username-screen-input"
             autoFocus
-            maxLength={50}
+            maxLength={VALIDATION.MAX_USERNAME_LENGTH}
           />
           <button type="submit" className="username-screen-button">
             Start Chatting

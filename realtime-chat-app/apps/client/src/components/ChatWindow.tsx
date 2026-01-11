@@ -1,14 +1,15 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { IMessage, IErrorMessage } from '@chat-app/shared';
 import { useChatSocket } from '../hooks/useChatSocket';
+import { useErrorTimeout } from '../hooks/useErrorTimeout';
 import { ConnectionStatus as ConnectionStatusType } from '../types/index.js';
+import { storage } from '../utils/storage';
+import { isValidationError } from '../utils/errorHelpers';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ConnectionStatus } from './ConnectionStatus';
 import { UsernameScreen } from './UsernameScreen';
 import { SearchModal } from './SearchModal';
-
-const USERNAME_STORAGE_KEY = 'chat-app-username';
 
 /**
  * Main chat window component
@@ -16,32 +17,16 @@ const USERNAME_STORAGE_KEY = 'chat-app-username';
  */
 export function ChatWindow(): JSX.Element {
   const [messages, setMessages] = useState<IMessage[]>([]);
-  const [username, setUsername] = useState(() => {
-    // Load username from localStorage on initial render
-    return localStorage.getItem(USERNAME_STORAGE_KEY) || '';
-  });
+  const [username, setUsername] = useState(() => storage.getUsername());
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { setErrorTimeout, clearErrorTimeout } = useErrorTimeout();
 
   // Save username to localStorage whenever it changes
   useEffect(() => {
-    if (username.trim()) {
-      localStorage.setItem(USERNAME_STORAGE_KEY, username.trim());
-    } else {
-      localStorage.removeItem(USERNAME_STORAGE_KEY);
-    }
+    storage.setUsername(username);
   }, [username]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (errorTimeoutRef.current) {
-        clearTimeout(errorTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Handle history (REPLACE messages - critical for reconnection)
   const handleHistory = useCallback((historyMessages: IMessage[]) => {
@@ -55,58 +40,46 @@ export function ChatWindow(): JSX.Element {
   }, []);
 
   // Handle error
-  const handleError = useCallback((errorMessage: IErrorMessage) => {
-    // Clear any existing timeout
-    if (errorTimeoutRef.current) {
-      clearTimeout(errorTimeoutRef.current);
-      errorTimeoutRef.current = null;
-    }
-    
-    const errorText = errorMessage.message || 'An error occurred';
-    setError(errorText);
-    
-    // Clear max length error after 2 seconds, other errors after 5 seconds
-    const timeout = errorMessage.code === 'CONTENT_TOO_LONG' ? 2000 : 5000;
-    errorTimeoutRef.current = setTimeout(() => {
-      setError((currentError) => {
-        // Only clear if it's still the same error (prevents race conditions)
-        if (currentError === errorText) {
-          return null;
-        }
-        return currentError;
-      });
-      errorTimeoutRef.current = null;
-    }, timeout);
-  }, []);
+  const handleError = useCallback(
+    (errorMessage: IErrorMessage) => {
+      clearErrorTimeout();
+      const errorText = errorMessage.message || 'An error occurred';
+      setError(errorText);
+
+      // Set timeout to clear error
+      setErrorTimeout(() => {
+        setError((currentError) => {
+          // Only clear if it's still the same error (prevents race conditions)
+          if (currentError === errorText) {
+            return null;
+          }
+          return currentError;
+        });
+      }, errorMessage.code);
+    },
+    [setErrorTimeout, clearErrorTimeout]
+  );
 
   // Handle status change
   const handleStatusChange = useCallback((status: ConnectionStatusType) => {
-    // Clear error when connected (but only if it's a connection-related error)
-    if (status === 'connected') {
-      setError((currentError) => {
-        // Don't clear validation errors (like CONTENT_TOO_LONG) when connecting
-        if (currentError && !currentError.includes('700 characters')) {
-          return null;
-        }
+    setError((currentError) => {
+      // Don't overwrite validation errors
+      if (currentError && isValidationError(currentError)) {
         return currentError;
-      });
-    } else if (status === 'reconnecting') {
-      setError((currentError) => {
-        // Don't overwrite validation errors
-        if (currentError && currentError.includes('700 characters')) {
+      }
+
+      // Set appropriate error message based on status
+      switch (status) {
+        case 'connected':
+          return null;
+        case 'reconnecting':
+          return 'Connection lost. Reconnecting...';
+        case 'disconnected':
+          return 'Disconnected from server';
+        default:
           return currentError;
-        }
-        return 'Connection lost. Reconnecting...';
-      });
-    } else if (status === 'disconnected') {
-      setError((currentError) => {
-        // Don't overwrite validation errors
-        if (currentError && currentError.includes('700 characters')) {
-          return currentError;
-        }
-        return 'Disconnected from server';
-      });
-    }
+      }
+    });
   }, []);
 
   // WebSocket hook - only connect when username is set
@@ -138,31 +111,23 @@ export function ChatWindow(): JSX.Element {
 
   // Handle logout
   const handleLogout = useCallback(() => {
-    // Disconnect socket first
     disconnectSocket();
-    // Clear localStorage
-    localStorage.removeItem(USERNAME_STORAGE_KEY);
-    // Clear username (this will show UsernameScreen)
+    storage.removeUsername();
     setUsername('');
-    // Clear draft
     setDraft('');
-    // Clear messages - they'll be reloaded from server on reconnect
     setMessages([]);
   }, [disconnectSocket]);
 
   // Display error from socket or local state (but not when connected)
   // Validation errors (CONTENT_TOO_LONG) should only show in ChatInput, not ConnectionStatus
-  const isValidationError = (msg: string | null | undefined): boolean => {
-    if (!msg) return false;
-    return msg.includes('700 characters') || msg.includes('cannot exceed');
-  };
-  const connectionError = status === 'connected' 
-    ? null 
-    : (socketError?.message && !isValidationError(socketError.message) 
-        ? socketError.message 
-        : error && !isValidationError(error) 
-          ? error 
-          : null);
+  const connectionError =
+    status === 'connected'
+      ? null
+      : (socketError?.message && !isValidationError(socketError.message)
+          ? socketError.message
+          : error && !isValidationError(error)
+            ? error
+            : null);
   const inputError = error; // Show all errors in input, including validation errors
 
   // Show username screen if username is not set

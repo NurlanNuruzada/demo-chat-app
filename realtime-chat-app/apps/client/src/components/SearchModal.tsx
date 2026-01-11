@@ -1,11 +1,25 @@
-import { useState, useEffect, useRef, KeyboardEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, KeyboardEvent } from 'react';
 import { IMessage } from '@chat-app/shared';
+import { formatTime } from '../utils/formatTime';
 
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   messages: IMessage[];
   onMessageSelect?: (messageId: string) => void;
+}
+
+/**
+ * Filter messages based on search query
+ */
+function filterMessages(messages: IMessage[], query: string): IMessage[] {
+  if (!query.trim()) return [];
+  const lowerQuery = query.toLowerCase();
+  return messages.filter(
+    (message) =>
+      message.content.toLowerCase().includes(lowerQuery) ||
+      message.user.toLowerCase().includes(lowerQuery)
+  );
 }
 
 /**
@@ -28,39 +42,40 @@ export function SearchModal({ isOpen, onClose, messages, onMessageSelect }: Sear
 
   // Filter messages based on search query
   useEffect(() => {
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      const filtered = messages.filter((message) => 
-        message.content.toLowerCase().includes(query) ||
-        message.user.toLowerCase().includes(query)
-      );
-      setFilteredMessages(filtered);
-      setSelectedIndex(-1);
-    } else {
-      setFilteredMessages([]);
-      setSelectedIndex(-1);
-    }
+    const filtered = filterMessages(messages, searchQuery);
+    setFilteredMessages(filtered);
+    setSelectedIndex(-1);
   }, [searchQuery, messages]);
 
   // Handle keyboard navigation
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Escape') {
-      onClose();
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (selectedIndex < filteredMessages.length - 1) {
-        setSelectedIndex(selectedIndex + 1);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>): void => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
       }
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (selectedIndex > 0) {
-        setSelectedIndex(selectedIndex - 1);
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev < filteredMessages.length - 1 ? prev + 1 : prev
+        );
+        return;
       }
-    } else if (e.key === 'Enter' && selectedIndex >= 0 && filteredMessages[selectedIndex]) {
-      e.preventDefault();
-      onMessageSelect?.(filteredMessages[selectedIndex].id);
-    }
-  };
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+        return;
+      }
+
+      if (e.key === 'Enter' && selectedIndex >= 0 && filteredMessages[selectedIndex]) {
+        e.preventDefault();
+        onMessageSelect?.(filteredMessages[selectedIndex].id);
+      }
+    },
+    [filteredMessages, selectedIndex, onClose, onMessageSelect]
+  );
 
   // Scroll selected item into view
   useEffect(() => {
@@ -112,13 +127,7 @@ export function SearchModal({ isOpen, onClose, messages, onMessageSelect }: Sear
                 >
                   <div className="search-modal-item-header">
                     <span className="search-modal-item-user">{message.user}</span>
-                    <span className="search-modal-item-time">
-                      {new Date(message.timestamp).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true,
-                      })}
-                    </span>
+                    <span className="search-modal-item-time">{formatTime(message.timestamp)}</span>
                   </div>
                   <div className="search-modal-item-content">{message.content}</div>
                 </div>
