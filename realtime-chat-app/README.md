@@ -147,36 +147,82 @@ docker compose down
 
 ## 📚 Technical Details
 
-### WebSocket Library: Socket.IO
+### Your Choice of WebSocket Library and Why
 
-We chose **Socket.IO** over native WebSocket for several reasons:
+We chose **Socket.IO** over native WebSocket for several important reasons:
 
-1. **Automatic Reconnection**: Built-in reconnection logic with exponential backoff
-2. **Transport Fallback**: Automatically falls back from WebSocket to HTTP long-polling if needed
-3. **Event-Based API**: Clean, event-driven architecture
-4. **Room Management**: Built-in support for rooms and namespaces (useful for future features)
-5. **Error Handling**: Better error handling and connection state management
-6. **Cross-Browser Compatibility**: Handles browser differences automatically
+1. **Automatic Reconnection**: Built-in reconnection logic with exponential backoff, eliminating the need for manual reconnection handling. Socket.IO automatically attempts to reconnect when the connection is lost.
 
-### Message History Management
+2. **Transport Fallback**: Automatically falls back from WebSocket to HTTP long-polling if WebSocket is blocked or unavailable (common in corporate networks, proxies, or certain browsers). This ensures the application works in all network conditions.
 
-The application maintains the **last 10 messages** on the server:
+3. **Event-Based API**: Clean, event-driven architecture that matches React's event handling patterns. Events like `connect`, `disconnect`, `new_message`, and `history` are easily handled with callbacks.
 
-1. **Storage**: Messages are persisted to `apps/server/data/messages.json` on disk
-2. **On Server Start**: Messages are loaded from disk automatically
-3. **On New Message**: 
-   - New message is added to the store
-   - If more than 10 messages exist, only the last 10 are kept (older messages are trimmed)
-   - Updated messages are saved to disk
-4. **On Client Connect**: Server sends the last 10 messages immediately (history hydration)
-5. **On Reconnect**: Client receives fresh history, preventing duplicates
+4. **Connection State Management**: Built-in connection state tracking (`socket.connected`, `socket.disconnected`) simplifies UI state management and prevents sending messages when disconnected.
 
-This ensures:
-- Messages persist across server restarts
-- Clients always have recent conversation context
-- Server memory usage stays bounded
-- No message duplication on reconnect
+5. **Error Handling**: Better error handling with `connect_error` events that can be filtered and handled gracefully, hiding technical errors from users while maintaining automatic reconnection.
 
-## 📄 License
+6. **Cross-Browser Compatibility**: Handles browser differences automatically, ensuring consistent behavior across Chrome, Firefox, Safari, and Edge.
 
-Private
+7. **Room Management**: Built-in support for rooms and namespaces (useful for future features like private chats or multiple chat rooms).
+
+8. **Developer Experience**: Excellent TypeScript support and well-documented API that speeds up development and reduces bugs.
+
+### How You Handled the State Synchronization of the "Last 10 Messages" on the Server
+
+The application maintains exactly **10 messages** on the server with the following state synchronization strategy:
+
+#### 1. **Message Storage Architecture**
+- **In-Memory Store**: Messages are stored in a `MessageStore` class (`apps/server/src/store/messageStore.ts`) with an in-memory array
+- **Persistent Storage**: Messages are automatically persisted to `apps/server/data/messages.json` on disk after every modification
+- **Automatic Loading**: On server start, messages are loaded from disk into memory
+
+#### 2. **State Synchronization Flow**
+
+**On New Message** (`messageHandler.ts:94`):
+```typescript
+// Store message (automatically trims to last 10)
+messageStore.addMessage(message);
+```
+
+**In MessageStore.addMessage()** (`messageStore.ts:58-67`):
+```typescript
+addMessage(message: IMessage): void {
+  this.messages.push(message);
+  
+  // Keep only the last MAX_MESSAGES (10)
+  if (this.messages.length > MAX_MESSAGES) {
+    this.messages = this.messages.slice(-MAX_MESSAGES);
+  }
+  
+  this.saveMessages(); // Persist to disk
+}
+```
+
+**Trimming Logic**: When a new message is added:
+1. Message is pushed to the array
+2. If array length exceeds 10, only the last 10 messages are kept using `slice(-10)`
+3. Array is immediately saved to disk to persist the trimmed state
+
+#### 3. **Client Synchronization**
+
+**On Client Connect** (`connectionHandler.ts:17-18`):
+```typescript
+// Send connection hydration (last 10 messages)
+sendHistory(socket);
+```
+
+**History Delivery** (`connectionHandler.ts:32-36`):
+```typescript
+const messages: IMessage[] = messageStore.getLastMessages(HISTORY_MESSAGE_COUNT);
+socket.emit('history', {
+  type: 'history',
+  payload: { messages },
+});
+```
+
+**Client Handling** (`ChatWindow.tsx:47-50`):
+```typescript
+const handleHistory = useCallback((historyMessages: IMessage[]) => {
+  setMessages(historyMessages);
+}, []);
+```
