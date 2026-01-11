@@ -177,7 +177,7 @@ export function ChatWindow(): JSX.Element {
     <div className="chat-window">
       <div className="chat-window-header">
         <div className="chat-window-header-left">
-          <h1>Chat App</h1>
+          <h1>Fullstack Technical Challenge: Chat App</h1>
           <span className="chat-window-username">{username}</span>
         </div>
         <div className="chat-window-header-right">

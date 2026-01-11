@@ -1,16 +1,13 @@
-# demo-chat-app
-A real-time chat application built with TypeScript, Node.js, React, and WebSockets. This is a minimal, single-page application featuring one shared chat room where multiple users can communicate in real-time.
-
 # Real-time Chat Application
 
-A real-time chat application built with Socket.IO, React, TypeScript, and a monorepo structure.
+A real-time chat application built with Socket.IO, React, TypeScript, and a monorepo structure. Features a single shared chat room where multiple users can communicate in real-time.
 
 ## 🏗️ Architecture
 
 - **Monorepo Structure**: Using npm workspaces
 - **Backend**: Node.js + Socket.IO server (Port: 3001)
-- **Frontend**: React + Vite (Port: 5173)
-- **Shared**: Common types and utilities
+- **Frontend**: React + Vite (Port: 5173 in dev, Port: 80 in Docker)
+- **Shared**: Common types and interfaces
 
 ## 📦 Packages
 
@@ -18,18 +15,23 @@ A real-time chat application built with Socket.IO, React, TypeScript, and a mono
 - `apps/client` - React client application
 - `packages/shared` - Shared types and interfaces
 
+## 📋 Prerequisites
+
+- **Node.js**: >= 18.0.0 (see `.nvmrc` for recommended version)
+- **npm**: >= 9.0.0
+- **Docker** (optional): For containerized deployment
+
 ## 🚀 Getting Started
 
-### Prerequisites
-
-- Node.js >= 18.0.0
-- npm >= 9.0.0
-
 ### Installation
+
+Install all dependencies from the root directory:
 
 ```bash
 npm install
 ```
+
+This will install dependencies for all workspaces (server, client, and shared).
 
 ### Development
 
@@ -49,16 +51,35 @@ npm run dev:server
 npm run dev:client
 ```
 
-### Environment Variables
+### Opening the Application
 
-Copy `.env.example` to `.env` and configure:
+Once the development servers are running:
+
+- **Frontend**: Open http://localhost:5173 in your browser
+- **Backend**: Running on http://localhost:3001
+
+## 🐳 Docker (Production)
+
+### Quick Start
+
+Build and run everything with Docker:
 
 ```bash
-cp .env.example .env
+docker compose up --build
 ```
 
-- `SERVER_PORT`: Backend WebSocket server port (default: 3001)
-- `CORS_ORIGIN`: Frontend origin for CORS (default: http://localhost:5173)
+Then open http://localhost in your browser.
+
+### Docker Services
+
+- **server**: Node.js backend with Socket.IO (Port: 3001)
+- **client**: Nginx serving the built React frontend (Port: 80)
+
+### Stop Services
+
+```bash
+docker compose down
+```
 
 ## 🛠️ Scripts
 
@@ -66,16 +87,56 @@ cp .env.example .env
 - `npm run build` - Build all packages
 - `npm run lint` - Lint all packages
 - `npm run format` - Format code with Prettier
-- `npm run format:check` - Check code formatting
 
-## 📋 Features
+## 📝 Features
 
-- Real-time messaging with Socket.IO
-- Message validation (required: non-empty content, optional: max length 500, username validation)
-- Message read receipts (track who read messages)
-- Message timestamps and user identification
-- Connection status indicator
-- Auto-reconnection on disconnect
+### Core Functionality
+- **Real-time messaging**: Instant message delivery using Socket.IO WebSocket
+- **Multi-user chat**: Multiple users can chat simultaneously in a shared room
+- **Message history**: Last 10 messages persist across server restarts
+- **Connection management**: Automatic reconnection with status indicators
+
+### User Experience
+- **Username management**: 
+  - Username entry screen before accessing chat
+  - Username saved in localStorage for convenience
+  - Logout functionality to clear session
+- **UI**: 
+  - Dark theme with modern design
+  - Message bubbles (own messages vs others)
+  - Responsive layout for all screen sizes
+  - Auto-resizing textarea (grows up to 6 lines, then scrolls)
+  - Text centered when single line, top-aligned when multiline
+
+### Message Features
+- **Message validation**:
+  - Maximum length: 700 characters
+  - Username required
+  - Empty message prevention
+  - Real-time validation feedback
+- **Message display**:
+  - Timestamps (formatted time display)
+  - Sender identification
+  - Visual distinction between own and others' messages
+
+### Search & Navigation
+- **Message search**: 
+  - Search by message content or username
+  - Keyboard navigation (Arrow keys, Enter, Escape)
+  - Real-time filtering
+  - Search modal with results preview
+
+### Connection & Reliability
+- **Connection status**: Visual indicator showing Connected/Connecting/Reconnecting/Not Connected
+- **Auto-reconnection**: Automatic reconnection with exponential backoff
+- **Error handling**: 
+  - User-friendly error messages
+  - Validation errors auto-dismiss after 2-5 seconds
+  - Connection errors hidden from users (technical errors filtered)
+- **History synchronization**: 
+  - Messages sent on every connection
+  - Prevents duplicates on reconnect
+  - Deterministic message order
 
 ## 🔧 Tech Stack
 
@@ -84,53 +145,37 @@ cp .env.example .env
 - **Code Quality**: ESLint, Prettier
 - **Monorepo**: npm workspaces
 
-## 📝 Message Validation Rules
+## 📚 Technical Details
 
-### Required
-- Content must not be empty
+### WebSocket Library: Socket.IO
 
-### Bonus
-- Maximum message length: 500 characters
-- Username must not be empty
-- Automatic whitespace trimming
+We chose **Socket.IO** over native WebSocket for several reasons:
 
-## 🐳 Docker
+1. **Automatic Reconnection**: Built-in reconnection logic with exponential backoff
+2. **Transport Fallback**: Automatically falls back from WebSocket to HTTP long-polling if needed
+3. **Event-Based API**: Clean, event-driven architecture
+4. **Room Management**: Built-in support for rooms and namespaces (useful for future features)
+5. **Error Handling**: Better error handling and connection state management
+6. **Cross-Browser Compatibility**: Handles browser differences automatically
 
-### Quick Start with Docker
+### Message History Management
 
-1. **Build and run everything:**
-   ```bash
-   docker compose up --build
-   ```
+The application maintains the **last 10 messages** on the server:
 
-2. **Access the application:**
-   - Frontend: http://localhost:80 (or http://localhost)
-   - Backend: http://localhost:3001
+1. **Storage**: Messages are persisted to `apps/server/data/messages.json` on disk
+2. **On Server Start**: Messages are loaded from disk automatically
+3. **On New Message**: 
+   - New message is added to the store
+   - If more than 10 messages exist, only the last 10 are kept (older messages are trimmed)
+   - Updated messages are saved to disk
+4. **On Client Connect**: Server sends the last 10 messages immediately (history hydration)
+5. **On Reconnect**: Client receives fresh history, preventing duplicates
 
-3. **Stop everything:**
-   ```bash
-   docker compose down
-   ```
-
-4. **View logs:**
-   ```bash
-   docker compose logs -f
-   ```
-
-### Docker Services
-
-- **server**: Node.js backend with Socket.IO
-- **client**: Nginx serving the built React frontend
-
-The Docker setup uses multi-stage builds for optimal image sizes and includes nginx for serving the frontend static files.
-
-### Development with Docker
-
-For development, you can still use the npm scripts (see Development section below). Docker is primarily for production deployments or testing the full stack.
-
-```bash
-docker-compose up
-```
+This ensures:
+- Messages persist across server restarts
+- Clients always have recent conversation context
+- Server memory usage stays bounded
+- No message duplication on reconnect
 
 ## 📄 License
 
