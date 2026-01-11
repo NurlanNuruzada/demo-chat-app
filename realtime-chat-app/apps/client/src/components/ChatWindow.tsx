@@ -6,6 +6,7 @@ import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ConnectionStatus } from './ConnectionStatus';
 import { UsernameScreen } from './UsernameScreen';
+import { SearchModal } from './SearchModal';
 
 const USERNAME_STORAGE_KEY = 'chat-app-username';
 
@@ -21,6 +22,7 @@ export function ChatWindow(): JSX.Element {
   });
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Save username to localStorage whenever it changes
   useEffect(() => {
@@ -45,8 +47,9 @@ export function ChatWindow(): JSX.Element {
   // Handle error
   const handleError = useCallback((errorMessage: IErrorMessage) => {
     setError(errorMessage.message || 'An error occurred');
-    // Clear error after 5 seconds
-    setTimeout(() => setError(null), 5000);
+    // Clear max length error after 4 seconds, other errors after 5 seconds
+    const timeout = errorMessage.code === 'CONTENT_TOO_LONG' ? 4000 : 5000;
+    setTimeout(() => setError(null), timeout);
   }, []);
 
   // Handle status change
@@ -121,6 +124,12 @@ export function ChatWindow(): JSX.Element {
           <span className="chat-window-username">{username}</span>
         </div>
         <div className="chat-window-header-right">
+          <button className="search-button" onClick={() => setIsSearchOpen(true)} aria-label="Search messages">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+              <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
           <ConnectionStatus status={status} error={displayError} />
           <button className="logout-button" onClick={handleLogout} aria-label="Logout">
             Logout
@@ -135,6 +144,16 @@ export function ChatWindow(): JSX.Element {
         onSend={handleSend}
         disabled={!connected}
         error={displayError}
+      />
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        messages={messages}
+        onMessageSelect={(messageId) => {
+          // Close search modal when message is selected
+          setIsSearchOpen(false);
+          // TODO: Scroll to message in message list
+        }}
       />
     </div>
   );

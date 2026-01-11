@@ -1,6 +1,6 @@
 import { ClientToServerEvent, IErrorMessage } from '@chat-app/shared';
 
-const MAX_CONTENT_LENGTH = 500;
+const MAX_CONTENT_LENGTH = 700;
 
 /**
  * Validation result
@@ -13,7 +13,7 @@ export interface ValidationResult {
 /**
  * Validate incoming message event
  * Required: content not empty
- * Bonus: max length 500, user not empty, trim whitespace
+ * Bonus: max length 700, user not empty, trim whitespace
  */
 export function validateMessage(event: ClientToServerEvent): ValidationResult {
   // Check event type

@@ -1,4 +1,4 @@
-import { useState, FormEvent, KeyboardEvent } from 'react';
+import {FormEvent, KeyboardEvent } from 'react';
 
 interface ChatInputProps {
   username: string;
