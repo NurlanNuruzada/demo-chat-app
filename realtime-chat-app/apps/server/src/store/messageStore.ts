@@ -10,6 +10,7 @@ const __dirname = dirname(__filename);
 const STORAGE_DIR = join(__dirname, '../../data');
 const STORAGE_FILE = join(STORAGE_DIR, 'messages.json');
 const MAX_MESSAGES = 10;
+const ENCODING = 'utf-8' as const;
 
 class MessageStore {
   private messages: IMessage[] = [];
@@ -26,9 +27,8 @@ class MessageStore {
       // Ensure data directory exists
       mkdirSync(STORAGE_DIR, { recursive: true });
 
-      // Try to read existing messages
       if (existsSync(STORAGE_FILE)) {
-        const data = readFileSync(STORAGE_FILE, 'utf-8');
+        const data = readFileSync(STORAGE_FILE, ENCODING);
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed)) {
           this.messages = parsed;
@@ -46,7 +46,7 @@ class MessageStore {
   private saveMessages(): void {
     try {
       mkdirSync(STORAGE_DIR, { recursive: true });
-      writeFileSync(STORAGE_FILE, JSON.stringify(this.messages, null, 2), 'utf-8');
+      writeFileSync(STORAGE_FILE, JSON.stringify(this.messages, null, 2), ENCODING);
     } catch (error) {
       console.error('Failed to save messages to storage:', error);
     }

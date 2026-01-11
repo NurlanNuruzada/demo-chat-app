@@ -18,26 +18,27 @@ export function handleConnection(socket: Socket, io: SocketIOServer): void {
   sendHistory(socket);
 }
 
+const HISTORY_MESSAGE_COUNT = 10;
+
 /**
  * Send message history to a specific socket
  */
 function sendHistory(socket: Socket): void {
+  if (!socket.connected || socket.disconnected) {
+    return;
+  }
+
   try {
-    // Get last 10 messages
-    const messages: IMessage[] = messageStore.getLastMessages(10);
+    const messages: IMessage[] = messageStore.getLastMessages(HISTORY_MESSAGE_COUNT);
+    socket.emit('history', {
+      type: 'history',
+      payload: { messages },
+    } as const);
 
-    // Send history event
-    if (socket.connected && socket.disconnected === false) {
-      socket.emit('history', {
-        type: 'history',
-        payload: { messages },
-      } as const);
-
-      logInfo('History sent to client', {
-        socketId: socket.id,
-        messageCount: messages.length,
-      });
-    }
+    logInfo('History sent to client', {
+      socketId: socket.id,
+      messageCount: messages.length,
+    });
   } catch (error) {
     logError('Failed to send history to client', {
       socketId: socket.id,

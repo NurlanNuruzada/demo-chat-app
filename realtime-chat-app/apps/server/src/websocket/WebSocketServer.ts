@@ -11,8 +11,8 @@ import { logInfo, logError } from '../utils/logger.js';
  * Tracks connected clients and handles WebSocket lifecycle
  */
 export class WebSocketServer {
-  private io: SocketIOServer;
-  private connectedClients: Set<Socket>;
+  private readonly io: SocketIOServer;
+  private readonly connectedClients: Set<Socket>;
   private connectionCount = 0;
   private disconnectCount = 0;
 
@@ -49,27 +49,22 @@ export class WebSocketServer {
    * Handle new client connection
    */
   private handleConnection(socket: Socket): void {
-    // Add to connected clients set
     this.connectedClients.add(socket);
     this.connectionCount++;
 
-    // Handle connection hydration and logging
+    // Setup connection handlers
     handleConnection(socket, this.io);
-
-    // Handle heartbeat (ping/pong)
     handleHeartbeat(socket);
 
-    // Handle client messages (Socket.IO custom event: send_message)
+    // Register socket event handlers
     socket.on('send_message', (data: unknown) => {
       this.handleMessage(socket, data);
     });
 
-    // Handle client disconnect
     socket.on('disconnect', (reason: string) => {
       this.handleDisconnect(socket, reason);
     });
 
-    // Handle client errors
     socket.on('error', (error: Error) => {
       this.handleError(error);
     });
@@ -87,7 +82,6 @@ export class WebSocketServer {
    * Handle client disconnect
    */
   private handleDisconnect(socket: Socket, reason: string): void {
-    // Remove from connected clients set
     this.connectedClients.delete(socket);
     this.disconnectCount++;
 

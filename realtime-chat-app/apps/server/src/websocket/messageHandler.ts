@@ -10,6 +10,24 @@ import { logInfo, logError, logWarn } from '../utils/logger.js';
  * Handle incoming message from client
  * Flow: Parse -> Validate -> Store -> Broadcast
  */
+
+/**
+ * Parse incoming message data into ClientToServerEvent
+ */
+function parseMessageData(data: unknown): ClientToServerEvent | null {
+  try {
+    if (typeof data === 'object' && data !== null) {
+      return data as ClientToServerEvent;
+    }
+    if (typeof data === 'string') {
+      return JSON.parse(data) as ClientToServerEvent;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function handleMessage(
   socket: Socket,
   io: SocketIOServer,
@@ -17,30 +35,16 @@ export function handleMessage(
 ): void {
   try {
     // Parse incoming message
-    let event: ClientToServerEvent;
-    try {
-      // If data is already an object, use it directly
-      if (typeof data === 'object' && data !== null) {
-        event = data as ClientToServerEvent;
-      } else if (typeof data === 'string') {
-        // If data is a string, parse it
-        event = JSON.parse(data) as ClientToServerEvent;
-      } else {
-        throw new Error('Invalid message format');
-      }
-    } catch (parseError) {
+    const event = parseMessageData(data);
+    if (!event) {
       logWarn('Failed to parse message', {
         socketId: socket.id,
-        error: parseError instanceof Error ? parseError.message : 'Unknown error',
       });
-
-      // Send error back to sender only
-      const errorMessage: IErrorMessage = {
+      sendError(socket, {
         type: 'error',
         code: 'PARSE_ERROR',
         message: 'Failed to parse message. Invalid JSON format.',
-      };
-      sendError(socket, errorMessage);
+      });
       return;
     }
 
@@ -51,25 +55,30 @@ export function handleMessage(
         socketId: socket.id,
         error: validation.error,
       });
-
-      // Send error back to sender only
       if (validation.error) {
         sendError(socket, validation.error);
       }
       return;
     }
 
-    // Sanitize message (trim whitespace)
-    const sanitizedEvent = sanitizeMessage(event);
-
     // Type guard: ensure this is a send_message event
-    if (sanitizedEvent.type !== 'send_message') {
-      const errorMessage: IErrorMessage = {
+    if (event.type !== 'send_message') {
+      sendError(socket, {
         type: 'error',
         code: 'INVALID_EVENT_TYPE',
-        message: `Expected 'send_message' event, got '${sanitizedEvent.type}'`,
-      };
-      sendError(socket, errorMessage);
+        message: `Expected 'send_message' event, got '${event.type}'`,
+      });
+      return;
+    }
+
+    // Sanitize message (trim whitespace)
+    const sanitizedEvent = sanitizeMessage(event);
+    if (sanitizedEvent.type !== 'send_message') {
+      sendError(socket, {
+        type: 'error',
+        code: 'INVALID_EVENT_TYPE',
+        message: 'Invalid event type after sanitization',
+      });
       return;
     }
 
@@ -96,14 +105,11 @@ export function handleMessage(
       socketId: socket.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-
-    // Send generic error back to sender
-    const errorMessage: IErrorMessage = {
+    sendError(socket, {
       type: 'error',
       code: 'INTERNAL_ERROR',
       message: 'An unexpected error occurred',
-    };
-    sendError(socket, errorMessage);
+    });
   }
 }
 
@@ -116,23 +122,23 @@ function broadcastMessage(io: SocketIOServer, message: IMessage): void {
   let errorCount = 0;
 
   io.sockets.sockets.forEach((socket) => {
-    // Check if socket is ready/open
-    if (socket.connected && socket.disconnected === false) {
-      try {
-        socket.emit('new_message', {
-          type: 'new_message',
-          payload: { message },
-        } as const);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        logWarn('Failed to send message to client', {
-          socketId: socket.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    } else {
+    if (!socket.connected || socket.disconnected) {
       errorCount++;
+      return;
+    }
+
+    try {
+      socket.emit('new_message', {
+        type: 'new_message',
+        payload: { message },
+      } as const);
+      successCount++;
+    } catch (error) {
+      errorCount++;
+      logWarn('Failed to send message to client', {
+        socketId: socket.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   });
 
@@ -148,17 +154,19 @@ function broadcastMessage(io: SocketIOServer, message: IMessage): void {
  * Send error message to a specific socket
  */
 function sendError(socket: Socket, error: IErrorMessage): void {
-  if (socket.connected && socket.disconnected === false) {
-    try {
-      socket.emit('error', {
-        type: 'error',
-        payload: error,
-      } as const);
-    } catch (error) {
-      logError('Failed to send error to client', {
-        socketId: socket.id,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+  if (!socket.connected || socket.disconnected) {
+    return;
+  }
+
+  try {
+    socket.emit('error', {
+      type: 'error',
+      payload: error,
+    } as const);
+  } catch (err) {
+    logError('Failed to send error to client', {
+      socketId: socket.id,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
   }
 }
