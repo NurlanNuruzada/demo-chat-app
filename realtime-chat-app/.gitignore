@@ -46,3 +46,6 @@ Thumbs.db
 
 # Vite
 .vite/
+
+# Server data storage
+apps/server/data/

@@ -5,6 +5,7 @@ import { ConnectionStatus } from '../types/index.js';
 
 interface UseChatSocketOptions {
   url?: string;
+  enabled?: boolean; // Control whether socket should connect
   onMessage?: (message: IMessage) => void;
   onHistory?: (messages: IMessage[]) => void;
   onError?: (error: IErrorMessage) => void;
@@ -29,6 +30,7 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
     url = import.meta.env.VITE_SERVER_URL || (typeof window !== 'undefined' 
       ? `${window.location.protocol}//${window.location.hostname}:3001`
       : 'http://localhost:3001'),
+    enabled = true,
     onMessage,
     onHistory,
     onError,
@@ -82,6 +84,17 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
 
   // Setup connection
   useEffect(() => {
+    // Don't connect if disabled
+    if (!enabled) {
+      if (socketRef.current) {
+        isManualDisconnectRef.current = true;
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      updateStatus('disconnected');
+      return;
+    }
+
     isManualDisconnectRef.current = false;
     updateStatus('connecting');
 
@@ -171,13 +184,13 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
       }
     });
 
-    // Cleanup on unmount
+    // Cleanup on unmount or when disabled
     return () => {
       isManualDisconnectRef.current = true;
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [url, onHistory, onMessage, onError, updateStatus]);
+  }, [url, enabled, onHistory, onMessage, onError, updateStatus]);
 
   return {
     socket: socketRef.current,

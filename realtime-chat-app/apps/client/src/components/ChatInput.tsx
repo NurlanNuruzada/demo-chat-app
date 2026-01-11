@@ -2,7 +2,6 @@ import { useState, FormEvent, KeyboardEvent } from 'react';
 
 interface ChatInputProps {
   username: string;
-  onUsernameChange: (username: string) => void;
   draft: string;
   onDraftChange: (draft: string) => void;
   onSend: (user: string, content: string) => void;
@@ -11,12 +10,11 @@ interface ChatInputProps {
 }
 
 /**
- * Chat input component with username and message fields
+ * Chat input component with message field
  * Handles form submission and Enter key press
  */
 export function ChatInput({
   username,
-  onUsernameChange,
   draft,
   onDraftChange,
   onSend,
@@ -50,14 +48,6 @@ export function ChatInput({
         </div>
       )}
       <form onSubmit={handleSubmit} className="chat-input-form">
-        <input
-          type="text"
-          placeholder="Your name"
-          value={username}
-          onChange={(e) => onUsernameChange(e.target.value)}
-          className="chat-input-username"
-          disabled={disabled}
-        />
         <div className="chat-input-message-container">
           <textarea
             placeholder="Type a message..."
@@ -68,8 +58,10 @@ export function ChatInput({
             rows={1}
             disabled={disabled}
           />
-          <button type="submit" disabled={!canSend} className="chat-input-send">
-            Send
+          <button type="submit" disabled={!canSend} className="chat-input-send" aria-label="Send message">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z" fill="currentColor"/>
+            </svg>
           </button>
         </div>
       </form>

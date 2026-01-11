@@ -22,7 +22,7 @@ export function ConnectionStatus({ status, error }: ConnectionStatusProps): JSX.
       case 'reconnecting':
         return 'Reconnecting...';
       case 'disconnected':
-        return 'Disconnected';
+        return 'Not Connected';
       default:
         return 'Unknown';
     }

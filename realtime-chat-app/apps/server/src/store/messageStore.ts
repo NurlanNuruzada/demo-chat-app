@@ -1,54 +1,99 @@
 import { IMessage } from '@chat-app/shared';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-/**
- * In-memory message store
- * Maintains the last 10 messages for connection hydration
- */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const STORAGE_DIR = join(__dirname, '../../data');
+const STORAGE_FILE = join(STORAGE_DIR, 'messages.json');
+const MAX_MESSAGES = 10;
+
 class MessageStore {
-  private messageHistory: IMessage[] = [];
-  private readonly MAX_MESSAGES = 10;
+  private messages: IMessage[] = [];
+
+  constructor() {
+    this.loadMessages();
+  }
 
   /**
-   * Add a new message to the history
-   * Automatically trims to last 10 messages
+   * Load messages from file storage
    */
-  addMessage(message: IMessage): void {
-    this.messageHistory.push(message);
+  private loadMessages(): void {
+    try {
+      // Ensure data directory exists
+      mkdirSync(STORAGE_DIR, { recursive: true });
 
-    // Trim to last 10 messages if over limit
-    if (this.messageHistory.length > this.MAX_MESSAGES) {
-      this.messageHistory = this.messageHistory.slice(-this.MAX_MESSAGES);
+      // Try to read existing messages
+      if (existsSync(STORAGE_FILE)) {
+        const data = readFileSync(STORAGE_FILE, 'utf-8');
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          this.messages = parsed;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load messages from storage:', error);
+      this.messages = [];
     }
   }
 
   /**
-   * Get the last N messages (default: last 10)
+   * Save messages to file storage
    */
-  getLastMessages(count: number = this.MAX_MESSAGES): IMessage[] {
-    return this.messageHistory.slice(-count);
+  private saveMessages(): void {
+    try {
+      mkdirSync(STORAGE_DIR, { recursive: true });
+      writeFileSync(STORAGE_FILE, JSON.stringify(this.messages, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('Failed to save messages to storage:', error);
+    }
+  }
+
+  /**
+   * Add a message to the store (keeps last 10 messages)
+   */
+  addMessage(message: IMessage): void {
+    this.messages.push(message);
+    
+    // Keep only the last MAX_MESSAGES
+    if (this.messages.length > MAX_MESSAGES) {
+      this.messages = this.messages.slice(-MAX_MESSAGES);
+    }
+    
+    this.saveMessages();
+  }
+
+  /**
+   * Get the last N messages
+   */
+  getLastMessages(count: number): IMessage[] {
+    return this.messages.slice(-count);
   }
 
   /**
    * Get all messages
    */
   getAllMessages(): IMessage[] {
-    return [...this.messageHistory];
+    return [...this.messages];
   }
 
   /**
    * Get message count
    */
   getMessageCount(): number {
-    return this.messageHistory.length;
+    return this.messages.length;
   }
 
   /**
    * Clear all messages
    */
   clear(): void {
-    this.messageHistory = [];
+    this.messages = [];
+    this.saveMessages();
   }
 }
 
-// Export singleton instance
 export const messageStore = new MessageStore();
