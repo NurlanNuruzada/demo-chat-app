@@ -1,6 +1,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef } from 'react';
 import { TEXTAREA_CONFIG } from '../utils/constants';
 import { isValidationError } from '../utils/errorHelpers';
+import styles from './ChatInput.module.css';
 
 interface ChatInputProps {
   username: string;
@@ -58,7 +59,7 @@ export function ChatInput({
     textarea.style.overflowX = 'hidden';
 
     // Update container alignment: center for single line, flex-end for multiline
-    const container = textarea.closest('.chat-input-message-container') as HTMLElement | null;
+    const container = textarea.closest(`.${styles.messageContainer}`) as HTMLElement | null;
     if (container) {
       container.style.alignItems =
         newHeight <= minHeight + HEIGHT_BUFFER ? 'center' : 'flex-end';
@@ -83,26 +84,26 @@ export function ChatInput({
   };
 
   return (
-    <div className="chat-input">
+    <div className={styles.chatInput}>
       {error && (
-        <div className="chat-input-error" role="alert">
+        <div className={styles.error} role="alert">
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="chat-input-form">
-        <div className="chat-input-message-container">
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <div className={styles.messageContainer}>
           <textarea
             ref={textareaRef}
             placeholder="Type a message..."
             value={draft}
             onChange={(e) => onDraftChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="chat-input-message"
+            className={styles.message}
             rows={1}
             disabled={disabled}
             // Always allow editing, even when message is too long - user needs to fix it
           />
-          <button type="submit" disabled={!canSend} className="chat-input-send" aria-label="Send message">
+          <button type="submit" disabled={!canSend} className={styles.sendButton} aria-label="Send message">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z" fill="currentColor"/>
             </svg>

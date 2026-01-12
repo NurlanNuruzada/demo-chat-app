@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { IMessage, IErrorMessage } from '@chat-app/shared';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { useErrorTimeout } from '../hooks/useErrorTimeout';
-import { ConnectionStatus as ConnectionStatusType } from '../types/index.js';
+import { ConnectionStatus as ConnectionStatusType } from '../types/index.ts';
 import { storage } from '../utils/storage';
 import { isValidationError } from '../utils/errorHelpers';
 import { MessageList } from './MessageList';
@@ -10,6 +10,7 @@ import { ChatInput } from './ChatInput';
 import { ConnectionStatus } from './ConnectionStatus';
 import { UsernameScreen } from './UsernameScreen';
 import { SearchModal } from './SearchModal';
+import styles from './ChatWindow.module.css';
 
 /**
  * Main chat window component
@@ -139,21 +140,21 @@ export function ChatWindow(): JSX.Element {
   // Show chat interface when username is set
   // useChatSocket will connect automatically when this component renders
   return (
-    <div className="chat-window">
-      <div className="chat-window-header">
-        <div className="chat-window-header-left">
+    <div className={styles.chatWindow}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
           <h1>Fullstack Technical Challenge: Chat App</h1>
-          <span className="chat-window-username">{username}</span>
+          <span className={styles.username}>{username}</span>
         </div>
-        <div className="chat-window-header-right">
-          <button className="search-button" onClick={() => setIsSearchOpen(true)} aria-label="Search messages">
+        <div className={styles.headerRight}>
+          <button className={styles.searchButton} onClick={() => setIsSearchOpen(true)} aria-label="Search messages">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
               <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           <ConnectionStatus status={status} error={connectionError} />
-          <button className="logout-button" onClick={handleLogout} aria-label="Logout">
+          <button className={styles.logoutButton} onClick={handleLogout} aria-label="Logout">
             Logout
           </button>
         </div>

@@ -1,5 +1,3 @@
-import { IMessage } from './IMessage';
-
 /**
  * Client-to-server events
  * Union type for type-safe Socket.IO events from client

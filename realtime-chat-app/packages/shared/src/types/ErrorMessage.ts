@@ -1,5 +1,3 @@
-import { IMessage } from './IMessage';
-
 /**
  * Error message structure for error events
  */

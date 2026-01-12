@@ -2,9 +2,9 @@ import { Socket } from 'socket.io';
 import { Server as SocketIOServer } from 'socket.io';
 import { IMessage, ClientToServerEvent, IErrorMessage } from '@chat-app/shared';
 import { v4 as uuidv4 } from 'uuid';
-import { messageStore } from '../store/messageStore.js';
-import { validateMessage, sanitizeMessage } from '../validators/messageValidator.js';
-import { logInfo, logError, logWarn } from '../utils/logger.js';
+import { messageStore } from '../store/messageStore.ts';
+import { validateMessage, sanitizeMessage } from '../validators/messageValidator.ts';
+import { logInfo, logError, logWarn } from '../utils/logger.ts';
 
 /**
  * Handle incoming message from client

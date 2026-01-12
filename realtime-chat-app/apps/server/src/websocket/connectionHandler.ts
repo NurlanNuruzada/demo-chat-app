@@ -1,8 +1,8 @@
 import { Socket } from 'socket.io';
 import { Server as SocketIOServer } from 'socket.io';
 import { IMessage } from '@chat-app/shared';
-import { messageStore } from '../store/messageStore.js';
-import { logInfo, logError } from '../utils/logger.js';
+import { messageStore } from '../store/messageStore.ts';
+import { logInfo, logError } from '../utils/logger.ts';
 
 /**
  * Handle new client connection

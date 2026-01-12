@@ -1,5 +1,6 @@
 import { IMessage } from '@chat-app/shared';
 import { formatTime, formatFullTime } from '../utils/formatTime';
+import styles from './MessageItem.module.css';
 
 interface MessageItemProps {
   message: IMessage;
@@ -20,15 +21,15 @@ function isOwnMessage(message: IMessage, currentUser?: string): boolean {
  */
 export function MessageItem({ message, currentUser }: MessageItemProps): JSX.Element {
   const own = isOwnMessage(message, currentUser);
-  const itemClass = own ? 'message-item message-item-own' : 'message-item message-item-other';
+  const itemClass = own ? `${styles.messageItem} ${styles.own}` : `${styles.messageItem} ${styles.other}`;
 
   return (
     <div className={itemClass}>
-      {!own && <div className="message-sender">{message.user}</div>}
-      <div className="message-bubble">
-        <div className="message-content">{message.content}</div>
-        <div className="message-meta">
-          <span className="message-timestamp" title={formatFullTime(message.timestamp)}>
+      {!own && <div className={styles.sender}>{message.user}</div>}
+      <div className={styles.bubble}>
+        <div className={styles.content}>{message.content}</div>
+        <div className={styles.meta}>
+          <span className={styles.timestamp} title={formatFullTime(message.timestamp)}>
             {formatTime(message.timestamp)}
           </span>
         </div>

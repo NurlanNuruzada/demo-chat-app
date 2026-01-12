@@ -1,6 +1,6 @@
 import { createServer, Server as HTTPServer } from 'http';
-import { WebSocketServer } from './websocket/WebSocketServer.js';
-import { config } from './config/env.js';
+import { WebSocketServer } from './websocket/WebSocketServer.ts';
+import { config } from './config/env.ts';
 
 /**
  * HTTP and WebSocket server lifecycle management

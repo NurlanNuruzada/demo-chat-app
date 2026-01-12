@@ -1,0 +1,69 @@
+.connectionStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-sm);
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-text-secondary);
+  transition: background-color var(--transition-base);
+}
+
+.indicatorConnected {
+  background-color: var(--color-status-connected);
+}
+
+.indicatorConnecting,
+.indicatorReconnecting {
+  background-color: var(--color-status-connecting);
+  animation: pulse 1.5s infinite;
+}
+
+.indicatorDisconnected {
+  background-color: var(--color-status-disconnected);
+}
+
+.indicatorError {
+  background-color: var(--color-status-error);
+}
+
+.text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.connected .text {
+  color: var(--color-text-secondary);
+}
+
+.connecting .text,
+.reconnecting .text {
+  color: var(--color-status-connecting);
+}
+
+.disconnected .text {
+  color: var(--color-text-secondary);
+}
+
+.error .text {
+  color: var(--color-status-error);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 768px) {
+  .text {
+    font-size: var(--font-size-xs);
+  }
+}

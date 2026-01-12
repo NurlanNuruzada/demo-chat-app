@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { IMessage } from '@chat-app/shared';
 import { MessageItem } from './MessageItem';
+import styles from './MessageList.module.css';
 
 interface MessageListProps {
   messages: IMessage[];
@@ -21,14 +22,14 @@ export function MessageList({ messages, currentUser }: MessageListProps): JSX.El
 
   if (messages.length === 0) {
     return (
-      <div className="message-list">
-        <div className="message-list-empty">No messages yet. Start the conversation!</div>
+      <div className={styles.messageList}>
+        <div className={styles.empty}>No messages yet. Start the conversation!</div>
       </div>
     );
   }
 
   return (
-    <div className="message-list">
+    <div className={styles.messageList}>
       {messages.map((message) => (
         <MessageItem key={message.id} message={message} currentUser={currentUser} />
       ))}

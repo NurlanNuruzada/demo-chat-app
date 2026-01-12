@@ -24,7 +24,6 @@ RUN npm run build
 
 # Build frontend
 WORKDIR /app/apps/client
-ARG VITE_SERVER_URL=http://localhost:3001
 RUN VITE_SERVER_URL=$VITE_SERVER_URL npm run build
 
 # ======================

@@ -1,0 +1,135 @@
+.screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-primary);
+  background-image: var(--bg-pattern);
+  background-size: var(--bg-pattern-size);
+  padding: var(--spacing-lg);
+}
+
+.container {
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2xl);
+  max-width: 400px;
+  width: 100%;
+  box-shadow: var(--shadow-sm);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.header h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.header p {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.error {
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid var(--color-border-error);
+  color: var(--color-status-error);
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  text-align: center;
+}
+
+.input {
+  width: 100%;
+  padding: 0.875rem var(--spacing-lg);
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+  outline: none;
+  transition: border-color var(--transition-base);
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: var(--color-accent-primary);
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.button {
+  width: 100%;
+  padding: 0.875rem var(--spacing-lg);
+  background-color: var(--color-accent-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: white;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+  font-family: inherit;
+}
+
+.button:hover {
+  background-color: var(--color-accent-primary-hover);
+}
+
+.button:active {
+  background-color: var(--color-accent-primary-active);
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: var(--spacing-xl);
+  }
+
+  .header h1 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .header p {
+    font-size: var(--font-size-base);
+  }
+
+  .input,
+  .button {
+    font-size: var(--font-size-lg);
+    padding: 0.75rem;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .container {
+    padding: var(--spacing-xl);
+  }
+
+  .header {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .header h1 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .header p {
+    font-size: var(--font-size-md);
+  }
+}

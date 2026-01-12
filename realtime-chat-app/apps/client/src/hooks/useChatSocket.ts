@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { IMessage, ServerToClientEvent, IErrorMessage, ClientToServerEvent } from '@chat-app/shared';
-import { ConnectionStatus } from '../types/index.js';
+import { ConnectionStatus } from '../types/index.ts';
 import { getDefaultServerUrl, shouldFilterError } from '../utils/socketHelpers';
 import { SOCKET_CONFIG, ERROR_MESSAGES } from '../utils/constants';
 
@@ -153,8 +153,15 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
         if (event?.type === eventType) {
           handler?.(event.payload);
         }
-      } catch {
-        // Silently ignore parsing errors
+      } catch (error) {
+        const errorMessage: IErrorMessage = {
+          type: 'error',
+          code: 'PARSE_ERROR',
+          message: `Failed to parse ${eventType} event: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+        setError(errorMessage);
+        onError?.(errorMessage);
+        console.warn(`Failed to parse server event (${eventType}):`, error);
       }
     };
 

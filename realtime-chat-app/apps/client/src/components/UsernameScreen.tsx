@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { VALIDATION, ERROR_MESSAGES } from '../utils/constants';
+import styles from './UsernameScreen.module.css';
 
 interface UsernameScreenProps {
   onUsernameSubmit: (username: string) => void;
@@ -32,15 +33,15 @@ export function UsernameScreen({ onUsernameSubmit }: UsernameScreenProps): JSX.E
   };
 
   return (
-    <div className="username-screen">
-      <div className="username-screen-container">
-        <div className="username-screen-header">
+    <div className={styles.screen}>
+      <div className={styles.container}>
+        <div className={styles.header}>
           <h1>Welcome to Chat App</h1>
           <p>Enter your name to start chatting</p>
         </div>
-        <form onSubmit={handleSubmit} className="username-screen-form">
+        <form onSubmit={handleSubmit} className={styles.form}>
           {error && (
-            <div className="username-screen-error" role="alert">
+            <div className={styles.error} role="alert">
               {error}
             </div>
           )}
@@ -52,11 +53,11 @@ export function UsernameScreen({ onUsernameSubmit }: UsernameScreenProps): JSX.E
               setUsername(e.target.value);
               setError(null);
             }}
-            className="username-screen-input"
+            className={styles.input}
             autoFocus
             maxLength={VALIDATION.MAX_USERNAME_LENGTH}
           />
-          <button type="submit" className="username-screen-button">
+          <button type="submit" className={styles.button}>
             Start Chatting
           </button>
         </form>

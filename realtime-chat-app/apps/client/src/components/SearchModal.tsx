@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, KeyboardEvent } from 'react';
 import { IMessage } from '@chat-app/shared';
 import { formatTime } from '../utils/formatTime';
+import styles from './SearchModal.module.css';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -90,9 +91,9 @@ export function SearchModal({ isOpen, onClose, messages, onMessageSelect }: Sear
   if (!isOpen) return null;
 
   return (
-    <div className="search-modal-overlay" onClick={onClose}>
-      <div className="search-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="search-modal-header">
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header}>
           <input
             ref={inputRef}
             type="text"
@@ -100,36 +101,36 @@ export function SearchModal({ isOpen, onClose, messages, onMessageSelect }: Sear
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="search-modal-input"
+            className={styles.input}
             autoFocus
           />
-          <button className="search-modal-close" onClick={onClose} aria-label="Close search">
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close search">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
         </div>
-        <div className="search-modal-results" ref={resultsRef}>
+        <div className={styles.results} ref={resultsRef}>
           {filteredMessages.length === 0 && searchQuery.trim() ? (
-            <div className="search-modal-empty">No messages found</div>
+            <div className={styles.empty}>No messages found</div>
           ) : filteredMessages.length === 0 ? (
-            <div className="search-modal-empty">Type to search messages...</div>
+            <div className={styles.empty}>Type to search messages...</div>
           ) : (
             <>
-              <div className="search-modal-count">
+              <div className={styles.count}>
                 {filteredMessages.length} {filteredMessages.length === 1 ? 'message' : 'messages'} found
               </div>
               {filteredMessages.map((message, index) => (
                 <div
                   key={message.id}
-                  className={`search-modal-item ${selectedIndex === index ? 'selected' : ''}`}
+                  className={`${styles.item} ${selectedIndex === index ? styles.selected : ''}`}
                   onClick={() => onMessageSelect?.(message.id)}
                 >
-                  <div className="search-modal-item-header">
-                    <span className="search-modal-item-user">{message.user}</span>
-                    <span className="search-modal-item-time">{formatTime(message.timestamp)}</span>
+                  <div className={styles.itemHeader}>
+                    <span className={styles.itemUser}>{message.user}</span>
+                    <span className={styles.itemTime}>{formatTime(message.timestamp)}</span>
                   </div>
-                  <div className="search-modal-item-content">{message.content}</div>
+                  <div className={styles.itemContent}>{message.content}</div>
                 </div>
               ))}
             </>

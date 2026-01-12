@@ -1,4 +1,5 @@
-import { ConnectionStatus as ConnectionStatusType } from '../types/index.js';
+import { ConnectionStatus as ConnectionStatusType } from '../types/index.ts';
+import styles from './ConnectionStatus.module.css';
 
 interface ConnectionStatusProps {
   status: ConnectionStatusType;
@@ -30,22 +31,34 @@ export function ConnectionStatus({ status, error }: ConnectionStatusProps): JSX.
 
   const getStatusClass = (): string => {
     if (error) {
-      return 'connection-status-error';
+      return styles.error;
     }
-    return `connection-status-${status}`;
+    const statusMap: Record<ConnectionStatusType, string> = {
+      connected: styles.connected,
+      connecting: styles.connecting,
+      reconnecting: styles.reconnecting,
+      disconnected: styles.disconnected,
+    };
+    return statusMap[status] || '';
   };
 
   const getIndicatorClass = (): string => {
     if (error) {
-      return 'connection-status-indicator-error';
+      return styles.indicatorError;
     }
-    return `connection-status-indicator-${status}`;
+    const indicatorMap: Record<ConnectionStatusType, string> = {
+      connected: styles.indicatorConnected,
+      connecting: styles.indicatorConnecting,
+      reconnecting: styles.indicatorReconnecting,
+      disconnected: styles.indicatorDisconnected,
+    };
+    return indicatorMap[status] || styles.indicator;
   };
 
   return (
-    <div className={`connection-status ${getStatusClass()}`}>
-      <span className={`connection-status-indicator ${getIndicatorClass()}`}></span>
-      <span className="connection-status-text">{getStatusText()}</span>
+    <div className={`${styles.connectionStatus} ${getStatusClass()}`}>
+      <span className={`${styles.indicator} ${getIndicatorClass()}`}></span>
+      <span className={styles.text}>{getStatusText()}</span>
     </div>
   );
 }

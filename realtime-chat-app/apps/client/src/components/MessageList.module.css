@@ -1,0 +1,25 @@
+.messageList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md) 0;
+  background-color: var(--color-bg-primary);
+  background-image: var(--bg-pattern);
+  background-size: var(--bg-pattern-size);
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .messageList {
+    padding: var(--spacing-sm) 0;
+  }
+}

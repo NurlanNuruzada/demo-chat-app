@@ -1,10 +1,10 @@
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { config } from '../config/env.js';
-import { handleConnection } from './connectionHandler.js';
-import { handleMessage } from './messageHandler.js';
-import { handleHeartbeat } from './heartbeatHandler.js';
-import { logInfo, logError } from '../utils/logger.js';
+import { config } from '../config/env.ts';
+import { handleConnection } from './connectionHandler.ts';
+import { handleMessage } from './messageHandler.ts';
+import { handleHeartbeat } from './heartbeatHandler.ts';
+import { logInfo, logError } from '../utils/logger.ts';
 
 /**
  * WebSocket server implementation using Socket.IO
