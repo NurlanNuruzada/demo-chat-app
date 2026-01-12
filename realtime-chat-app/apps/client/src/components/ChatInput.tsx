@@ -1,4 +1,4 @@
-import { FormEvent, KeyboardEvent, useEffect, useRef } from 'react';
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState, useCallback } from 'react';
 import { TEXTAREA_CONFIG } from '../utils/constants';
 import { isValidationError } from '../utils/errorHelpers';
 import styles from './ChatInput.module.css';
@@ -25,6 +25,8 @@ export function ChatInput({
   error,
 }: ChatInputProps): JSX.Element {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isMultiline, setIsMultiline] = useState(false);
 
   // Allow sending only if message is valid, username exists, and not disabled
   // Validation errors (like message too long) don't prevent editing, only sending
@@ -34,6 +36,14 @@ export function ChatInput({
     draft.trim().length > 0 &&
     !disabled &&
     !hasValidationError;
+
+  // Extract message submission logic to avoid duplication
+  const submitMessage = useCallback(() => {
+    if (canSend) {
+      onSend(username.trim(), draft.trim());
+      onDraftChange('');
+    }
+  }, [canSend, username, draft, onSend, onDraftChange]);
 
   // Auto-resize textarea based on content (like WhatsApp)
   useEffect(() => {
@@ -58,28 +68,21 @@ export function ChatInput({
     textarea.style.overflowY = needsScroll ? 'auto' : 'hidden';
     textarea.style.overflowX = 'hidden';
 
-    // Update container alignment: center for single line, flex-end for multiline
-    const container = textarea.closest(`.${styles.messageContainer}`) as HTMLElement | null;
-    if (container) {
-      container.style.alignItems =
-        newHeight <= minHeight + HEIGHT_BUFFER ? 'center' : 'flex-end';
-    }
+    // Update multiline state for container alignment
+    const isNowMultiline = newHeight > minHeight + HEIGHT_BUFFER;
+    setIsMultiline(isNowMultiline);
   }, [draft]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    if (canSend) {
-      onSend(username.trim(), draft.trim());
-      onDraftChange('');
-    }
+    submitMessage();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>): void => {
     // Send on Enter, but allow Shift+Enter or Cmd+Enter (Mac) / Ctrl+Enter for new line
     if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && canSend) {
       e.preventDefault();
-      onSend(username.trim(), draft.trim());
-      onDraftChange('');
+      submitMessage();
     }
   };
 
@@ -91,7 +94,10 @@ export function ChatInput({
         </div>
       )}
       <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.messageContainer}>
+        <div
+          ref={containerRef}
+          className={`${styles.messageContainer} ${isMultiline ? styles.multiline : ''}`}
+        >
           <textarea
             ref={textareaRef}
             placeholder="Type a message..."

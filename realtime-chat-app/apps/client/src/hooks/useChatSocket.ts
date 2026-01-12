@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { IMessage, ServerToClientEvent, IErrorMessage, ClientToServerEvent } from '@chat-app/shared';
 import { ConnectionStatus } from '../types/index.ts';
 import { getDefaultServerUrl, shouldFilterError } from '../utils/socketHelpers';
-import { SOCKET_CONFIG, ERROR_MESSAGES } from '../utils/constants';
+import { SOCKET_CONFIG, ERROR_MESSAGES, CONNECTION_STATUS } from '../utils/constants';
 
 interface UseChatSocketOptions {
   url?: string;
@@ -37,10 +37,22 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
     onStatusChange,
   } = options;
 
-  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const [status, setStatus] = useState<ConnectionStatus>(CONNECTION_STATUS.DISCONNECTED);
   const [error, setError] = useState<IErrorMessage | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const isManualDisconnectRef = useRef<boolean>(false);
+  
+  // Use refs for callbacks to avoid reconnections when callbacks change
+  const onMessageRef = useRef(onMessage);
+  const onHistoryRef = useRef(onHistory);
+  const onErrorRef = useRef(onError);
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+    onHistoryRef.current = onHistory;
+    onErrorRef.current = onError;
+  }, [onMessage, onHistory, onError]);
 
   // Update status helper
   const updateStatus = useCallback(
@@ -66,10 +78,10 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
           message: ERROR_MESSAGES.NOT_CONNECTED,
         };
         setError(errorMessage);
-        onError?.(errorMessage);
+        onErrorRef.current?.(errorMessage);
       }
     },
-    [onError]
+    []
   );
 
   // Disconnect function
@@ -79,7 +91,7 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-    updateStatus('disconnected');
+    updateStatus(CONNECTION_STATUS.DISCONNECTED);
   }, [updateStatus]);
 
   // Setup connection
@@ -91,16 +103,22 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
         socketRef.current.disconnect();
         socketRef.current = null;
       }
-      updateStatus('disconnected');
+      updateStatus(CONNECTION_STATUS.DISCONNECTED);
       return;
     }
 
     isManualDisconnectRef.current = false;
-    updateStatus('connecting');
+    updateStatus(CONNECTION_STATUS.CONNECTING);
+
+    // Debug: Log connection URL
+    if (import.meta.env.DEV) {
+      console.log('[Socket] Connecting to:', url);
+    }
 
     // Create socket connection
+    // Try WebSocket first for better performance, fallback to polling
     const socket = io(url, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: SOCKET_CONFIG.RECONNECTION_DELAY,
       reconnectionDelayMax: SOCKET_CONFIG.RECONNECTION_DELAY_MAX,
@@ -111,23 +129,29 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
 
     // Connection event
     socket.on('connect', () => {
+      if (import.meta.env.DEV) {
+        console.log('[Socket] Connected successfully');
+      }
       setError(null);
-      updateStatus('connected');
+      updateStatus(CONNECTION_STATUS.CONNECTED);
     });
 
     // Disconnect event
     socket.on('disconnect', () => {
       if (!isManualDisconnectRef.current) {
-        updateStatus('reconnecting');
+        updateStatus(CONNECTION_STATUS.RECONNECTING);
         setError(null);
       } else {
-        updateStatus('disconnected');
+        updateStatus(CONNECTION_STATUS.DISCONNECTED);
       }
     });
 
     // Connection error
     socket.on('connect_error', (err: Error) => {
-      updateStatus('reconnecting');
+      if (import.meta.env.DEV) {
+        console.error('[Socket] Connection error:', err.message, err);
+      }
+      updateStatus(CONNECTION_STATUS.RECONNECTING);
       // Only show error if it's not a technical connection retry error
       if (!shouldFilterError(err.message)) {
         const errorMessage: IErrorMessage = {
@@ -136,7 +160,7 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
           message: ERROR_MESSAGES.CONNECTION_LOST,
         };
         setError(errorMessage);
-        onError?.(errorMessage);
+        onErrorRef.current?.(errorMessage);
       }
     });
 
@@ -160,8 +184,11 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
           message: `Failed to parse ${eventType} event: ${error instanceof Error ? error.message : 'Unknown error'}`,
         };
         setError(errorMessage);
-        onError?.(errorMessage);
-        console.warn(`Failed to parse server event (${eventType}):`, error);
+        onErrorRef.current?.(errorMessage);
+        // Log in development for debugging
+        if (import.meta.env.DEV) {
+          console.warn(`Failed to parse server event (${eventType}):`, error);
+        }
       }
     };
 
@@ -171,7 +198,7 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
         data,
         'history',
         (payload) => {
-          onHistory?.(payload.messages);
+          onHistoryRef.current?.(payload.messages);
         }
       );
     });
@@ -182,7 +209,7 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
         data,
         'new_message',
         (payload) => {
-          onMessage?.(payload.message);
+          onMessageRef.current?.(payload.message);
         }
       );
     });
@@ -194,7 +221,7 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
         'error',
         (payload) => {
           setError(payload);
-          onError?.(payload);
+          onErrorRef.current?.(payload);
         }
       );
     });
@@ -205,7 +232,7 @@ export function useChatSocket(options: UseChatSocketOptions = {}): UseChatSocket
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [url, enabled, onHistory, onMessage, onError, updateStatus]);
+  }, [url, enabled, updateStatus]);
 
   return {
     socket: socketRef.current,

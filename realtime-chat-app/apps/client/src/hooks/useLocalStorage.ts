@@ -10,7 +10,13 @@ export function useLocalStorage<T>(
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : initialValue;
+      if (!item) return initialValue;
+      try {
+        return JSON.parse(item) as T;
+      } catch {
+        window.localStorage.removeItem(key);
+        return initialValue;
+      }
     } catch {
       return initialValue;
     }
@@ -23,8 +29,13 @@ export function useLocalStorage<T>(
       } else {
         window.localStorage.setItem(key, JSON.stringify(storedValue));
       }
-    } catch {
-      // Ignore localStorage errors
+    } catch (error) {
+      // Handle quota exceeded or other storage errors
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.warn('localStorage quota exceeded. Some data may not be saved.');
+      } else {
+        console.warn('Failed to save to localStorage:', error);
+      }
     }
   }, [key, storedValue]);
 

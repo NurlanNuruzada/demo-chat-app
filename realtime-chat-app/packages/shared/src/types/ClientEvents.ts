@@ -1,6 +1,9 @@
 /**
  * Client-to-server events
  * Union type for type-safe Socket.IO events from client
+ * 
+ * Note: Some event types (read_messages, join_room, leave_room) are defined
+ * for future functionality but not yet implemented in the current version.
  */
 export type ClientToServerEvent =
   | {

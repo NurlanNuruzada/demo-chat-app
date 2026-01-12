@@ -18,6 +18,7 @@ services:
       context: .
       dockerfile: apps/client/Dockerfile
       args:
+        # Browser connects from host, so use localhost (or host IP for remote access)
         VITE_SERVER_URL: http://localhost:3001
     container_name: chat-app-client
     ports:

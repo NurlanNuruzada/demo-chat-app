@@ -18,7 +18,6 @@ export function isConnectionError(message: string | null | undefined): boolean {
   if (!message) return false;
   return (
     message.includes(ERROR_MESSAGES.CONNECTION_LOST) ||
-    message.includes(ERROR_MESSAGES.DISCONNECTED) ||
-    message.includes('Connection')
+    message.includes(ERROR_MESSAGES.DISCONNECTED)
   );
 }

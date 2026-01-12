@@ -3,6 +3,7 @@ import { IErrorMessage } from '@chat-app/shared';
 import { ConnectionStatus } from '../types/index.ts';
 import { useErrorTimeout } from './useErrorTimeout';
 import { isValidationError } from '../utils/errorHelpers';
+import { CONNECTION_STATUS, ERROR_MESSAGES } from '../utils/constants';
 
 interface UseChatErrorReturn {
   error: string | null;
@@ -54,12 +55,12 @@ export function useChatError(): UseChatErrorReturn {
 
         // Set appropriate error message based on status
         switch (status) {
-          case 'connected':
+          case CONNECTION_STATUS.CONNECTED:
             return null;
-          case 'reconnecting':
-            return 'Connection lost. Reconnecting...';
-          case 'disconnected':
-            return 'Disconnected from server';
+          case CONNECTION_STATUS.RECONNECTING:
+            return ERROR_MESSAGES.CONNECTION_LOST;
+          case CONNECTION_STATUS.DISCONNECTED:
+            return ERROR_MESSAGES.DISCONNECTED;
           default:
             return currentError;
         }
@@ -71,7 +72,7 @@ export function useChatError(): UseChatErrorReturn {
   // Get connection error (excludes validation errors)
   const getConnectionError = useCallback(
     (status: ConnectionStatus, socketError: IErrorMessage | null): string | null => {
-      if (status === 'connected') {
+      if (status === CONNECTION_STATUS.CONNECTED) {
         return null;
       }
 

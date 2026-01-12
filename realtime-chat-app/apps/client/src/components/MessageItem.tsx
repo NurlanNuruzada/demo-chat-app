@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import { IMessage } from '@chat-app/shared';
 import { formatTime, formatFullTime } from '../utils/formatTime';
 import styles from './MessageItem.module.css';
@@ -9,6 +10,8 @@ interface MessageItemProps {
 
 /**
  * Check if message belongs to current user
+ * Note: Uses case-insensitive comparison by design to handle username variations
+ * (e.g., "John" and "john" are treated as the same user)
  */
 function isOwnMessage(message: IMessage, currentUser?: string): boolean {
   if (!currentUser) return false;
@@ -19,8 +22,8 @@ function isOwnMessage(message: IMessage, currentUser?: string): boolean {
  * Individual message component
  * Displays message content, sender, and timestamp in WhatsApp-style bubbles
  */
-export function MessageItem({ message, currentUser }: MessageItemProps): JSX.Element {
-  const own = isOwnMessage(message, currentUser);
+export const MessageItem = React.memo(function MessageItem({ message, currentUser }: MessageItemProps) {
+  const own = useMemo(() => isOwnMessage(message, currentUser), [message.user, currentUser]);
   const itemClass = own ? `${styles.messageItem} ${styles.own}` : `${styles.messageItem} ${styles.other}`;
 
   return (
@@ -36,4 +39,4 @@ export function MessageItem({ message, currentUser }: MessageItemProps): JSX.Ele
       </div>
     </div>
   );
-}
+});

@@ -2,9 +2,9 @@ import { Socket } from 'socket.io';
 import { Server as SocketIOServer } from 'socket.io';
 import { IMessage, ClientToServerEvent, IErrorMessage } from '@chat-app/shared';
 import { v4 as uuidv4 } from 'uuid';
-import { messageStore } from '../store/messageStore.ts';
-import { validateMessage, sanitizeMessage } from '../validators/messageValidator.ts';
-import { logInfo, logError, logWarn } from '../utils/logger.ts';
+import { messageStore } from '../store/messageStore.js';
+import { validateMessage, sanitizeMessage } from '../validators/messageValidator.js';
+import { logInfo, logError, logWarn } from '../utils/logger.js';
 
 /**
  * Handle incoming message from client
@@ -12,27 +12,83 @@ import { logInfo, logError, logWarn } from '../utils/logger.ts';
  */
 
 /**
+ * Validate that an object is a valid ClientToServerEvent
+ */
+function isValidClientEvent(obj: unknown): obj is ClientToServerEvent {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+  const event = obj as Record<string, unknown>;
+  
+  // Must have type field
+  if (typeof event.type !== 'string') {
+    return false;
+  }
+  
+  // Must have payload field
+  if (!event.payload || typeof event.payload !== 'object') {
+    return false;
+  }
+  
+  // Validate based on event type
+  switch (event.type) {
+    case 'send_message': {
+      const payload = event.payload as Record<string, unknown>;
+      return (
+        typeof payload.user === 'string' &&
+        typeof payload.content === 'string'
+      );
+    }
+    case 'read_messages': {
+      const payload = event.payload as Record<string, unknown>;
+      return (
+        Array.isArray(payload.messageIds) &&
+        payload.messageIds.every((id: unknown) => typeof id === 'string') &&
+        typeof payload.userId === 'string'
+      );
+    }
+    case 'join_room':
+    case 'leave_room': {
+      const payload = event.payload as Record<string, unknown>;
+      return typeof payload.userId === 'string';
+    }
+    case 'ping': {
+      const payload = event.payload as Record<string, unknown>;
+      return typeof payload.timestamp === 'number';
+    }
+    default:
+      return false;
+  }
+}
+
+/**
  * Parse incoming message data into ClientToServerEvent
  */
 function parseMessageData(data: unknown): ClientToServerEvent | null {
   try {
-    if (typeof data === 'object' && data !== null) {
-      return data as ClientToServerEvent;
-    }
+    let parsed: unknown = data;
+    
+    // Parse string to object
     if (typeof data === 'string') {
-      return JSON.parse(data) as ClientToServerEvent;
+      parsed = JSON.parse(data);
     }
+    
+    // Validate structure
+    if (isValidClientEvent(parsed)) {
+      return parsed;
+    }
+    
     return null;
   } catch {
     return null;
   }
 }
 
-export function handleMessage(
+export async function handleMessage(
   socket: Socket,
   io: SocketIOServer,
   data: unknown
-): void {
+): Promise<void> {
   try {
     // Parse incoming message
     const event = parseMessageData(data);
@@ -48,7 +104,7 @@ export function handleMessage(
       return;
     }
 
-    // Validate message
+    // Validate message (includes type check)
     const validation = validateMessage(event);
     if (!validation.valid) {
       logWarn('Message validation failed', {
@@ -61,26 +117,9 @@ export function handleMessage(
       return;
     }
 
-    // Type guard: ensure this is a send_message event
-    if (event.type !== 'send_message') {
-      sendError(socket, {
-        type: 'error',
-        code: 'INVALID_EVENT_TYPE',
-        message: `Expected 'send_message' event, got '${event.type}'`,
-      });
-      return;
-    }
-
+    // At this point, event.type is guaranteed to be 'send_message' by validateMessage
     // Sanitize message (trim whitespace)
     const sanitizedEvent = sanitizeMessage(event);
-    if (sanitizedEvent.type !== 'send_message') {
-      sendError(socket, {
-        type: 'error',
-        code: 'INVALID_EVENT_TYPE',
-        message: 'Invalid event type after sanitization',
-      });
-      return;
-    }
 
     // Create server-side message object
     const message: IMessage = {
@@ -91,11 +130,12 @@ export function handleMessage(
     };
 
     // Store message (automatically trims to last 10)
-    messageStore.addMessage(message);
+    await messageStore.addMessage(message);
+    const totalMessages = await messageStore.getMessageCount();
     logInfo('Message stored', {
       messageId: message.id,
       user: message.user,
-      totalMessages: messageStore.getMessageCount(),
+      totalMessages,
     });
 
     // Broadcast to all connected clients

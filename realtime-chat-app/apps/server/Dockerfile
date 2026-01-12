@@ -12,7 +12,7 @@ COPY packages/shared/package*.json ./packages/shared/
 COPY tsconfig.base.json ./
 
 # Install dependencies (requires workspaces)
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY apps/server ./apps/server
@@ -41,7 +41,7 @@ COPY apps/server/package*.json ./apps/server/
 COPY packages/shared/package*.json ./packages/shared/
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy built artifacts
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist

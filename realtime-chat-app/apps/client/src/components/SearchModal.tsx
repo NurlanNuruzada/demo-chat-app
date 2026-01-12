@@ -81,7 +81,9 @@ export function SearchModal({ isOpen, onClose, messages, onMessageSelect }: Sear
   // Scroll selected item into view
   useEffect(() => {
     if (selectedIndex >= 0 && resultsRef.current) {
-      const selectedElement = resultsRef.current.children[selectedIndex] as HTMLElement;
+      const selectedElement = resultsRef.current.querySelector(
+        `[data-index="${selectedIndex}"]`
+      ) as HTMLElement;
       if (selectedElement) {
         selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
@@ -123,6 +125,7 @@ export function SearchModal({ isOpen, onClose, messages, onMessageSelect }: Sear
               {filteredMessages.map((message, index) => (
                 <div
                   key={message.id}
+                  data-index={index}
                   className={`${styles.item} ${selectedIndex === index ? styles.selected : ''}`}
                   onClick={() => onMessageSelect?.(message.id)}
                 >

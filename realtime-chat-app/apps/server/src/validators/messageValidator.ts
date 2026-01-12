@@ -1,6 +1,4 @@
-import { ClientToServerEvent, IErrorMessage } from '@chat-app/shared';
-
-const MAX_CONTENT_LENGTH = 700;
+import { ClientToServerEvent, IErrorMessage, MAX_CONTENT_LENGTH } from '@chat-app/shared';
 
 /**
  * Validation result

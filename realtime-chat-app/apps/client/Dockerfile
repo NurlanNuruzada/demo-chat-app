@@ -3,6 +3,9 @@
 # ======================
 FROM node:20-alpine AS builder
 
+ARG VITE_SERVER_URL=http://localhost:3001
+ENV VITE_SERVER_URL=$VITE_SERVER_URL
+
 WORKDIR /app
 
 # Copy root and workspace package files
@@ -12,7 +15,7 @@ COPY packages/shared/package*.json ./packages/shared/
 COPY tsconfig.base.json ./
 
 # Install dependencies (requires workspaces)
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY apps/client ./apps/client
@@ -24,7 +27,7 @@ RUN npm run build
 
 # Build frontend
 WORKDIR /app/apps/client
-RUN VITE_SERVER_URL=$VITE_SERVER_URL npm run build
+RUN npm run build
 
 # ======================
 # Production stage

@@ -1,8 +1,8 @@
 import { Socket } from 'socket.io';
 import { Server as SocketIOServer } from 'socket.io';
-import { IMessage } from '@chat-app/shared';
-import { messageStore } from '../store/messageStore.ts';
-import { logInfo, logError } from '../utils/logger.ts';
+import { IMessage, HISTORY_MESSAGE_COUNT } from '@chat-app/shared';
+import { messageStore } from '../store/messageStore.js';
+import { logInfo, logError } from '../utils/logger.js';
 
 /**
  * Handle new client connection
@@ -15,21 +15,25 @@ export function handleConnection(socket: Socket, io: SocketIOServer): void {
   });
 
   // Send connection hydration (last 10 messages)
-  sendHistory(socket);
+  // Fire and forget - errors are handled in sendHistory
+  sendHistory(socket).catch((error) => {
+    logError('Failed to send history in handleConnection', {
+      socketId: socket.id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  });
 }
-
-const HISTORY_MESSAGE_COUNT = 10;
 
 /**
  * Send message history to a specific socket
  */
-function sendHistory(socket: Socket): void {
+async function sendHistory(socket: Socket): Promise<void> {
   if (!socket.connected || socket.disconnected) {
     return;
   }
 
   try {
-    const messages: IMessage[] = messageStore.getLastMessages(HISTORY_MESSAGE_COUNT);
+    const messages: IMessage[] = await messageStore.getLastMessages(HISTORY_MESSAGE_COUNT);
     socket.emit('history', {
       type: 'history',
       payload: { messages },

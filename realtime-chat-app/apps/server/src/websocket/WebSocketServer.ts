@@ -1,10 +1,10 @@
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { config } from '../config/env.ts';
-import { handleConnection } from './connectionHandler.ts';
-import { handleMessage } from './messageHandler.ts';
-import { handleHeartbeat } from './heartbeatHandler.ts';
-import { logInfo, logError } from '../utils/logger.ts';
+import { config } from '../config/env.js';
+import { handleConnection } from './connectionHandler.js';
+import { handleMessage } from './messageHandler.js';
+import { handleHeartbeat } from './heartbeatHandler.js';
+import { logInfo, logError } from '../utils/logger.js';
 
 /**
  * WebSocket server implementation using Socket.IO
@@ -75,7 +75,13 @@ export class WebSocketServer {
    */
   private handleMessage(socket: Socket, data: unknown): void {
     // Use message handler for parse -> validate -> store -> broadcast flow
-    handleMessage(socket, this.io, data);
+    // Fire and forget - errors are handled in handleMessage
+    handleMessage(socket, this.io, data).catch((error) => {
+      logError('Unhandled error in handleMessage', {
+        socketId: socket.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    });
   }
 
   /**

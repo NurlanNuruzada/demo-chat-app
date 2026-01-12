@@ -1,4 +1,5 @@
 import { ConnectionStatus as ConnectionStatusType } from '../types/index.ts';
+import { CONNECTION_STATUS, CONNECTION_STATUS_TEXT } from '../utils/constants';
 import styles from './ConnectionStatus.module.css';
 
 interface ConnectionStatusProps {
@@ -16,16 +17,16 @@ export function ConnectionStatus({ status, error }: ConnectionStatusProps): JSX.
       return `Error: ${error}`;
     }
     switch (status) {
-      case 'connected':
-        return 'Connected';
-      case 'connecting':
-        return 'Connecting...';
-      case 'reconnecting':
-        return 'Reconnecting...';
-      case 'disconnected':
-        return 'Not Connected';
+      case CONNECTION_STATUS.CONNECTED:
+        return CONNECTION_STATUS_TEXT.CONNECTED;
+      case CONNECTION_STATUS.CONNECTING:
+        return CONNECTION_STATUS_TEXT.CONNECTING;
+      case CONNECTION_STATUS.RECONNECTING:
+        return CONNECTION_STATUS_TEXT.RECONNECTING;
+      case CONNECTION_STATUS.DISCONNECTED:
+        return CONNECTION_STATUS_TEXT.DISCONNECTED;
       default:
-        return 'Unknown';
+        return CONNECTION_STATUS_TEXT.UNKNOWN;
     }
   };
 
@@ -34,10 +35,10 @@ export function ConnectionStatus({ status, error }: ConnectionStatusProps): JSX.
       return styles.error;
     }
     const statusMap: Record<ConnectionStatusType, string> = {
-      connected: styles.connected,
-      connecting: styles.connecting,
-      reconnecting: styles.reconnecting,
-      disconnected: styles.disconnected,
+      [CONNECTION_STATUS.CONNECTED]: styles.connected,
+      [CONNECTION_STATUS.CONNECTING]: styles.connecting,
+      [CONNECTION_STATUS.RECONNECTING]: styles.reconnecting,
+      [CONNECTION_STATUS.DISCONNECTED]: styles.disconnected,
     };
     return statusMap[status] || '';
   };
@@ -47,10 +48,10 @@ export function ConnectionStatus({ status, error }: ConnectionStatusProps): JSX.
       return styles.indicatorError;
     }
     const indicatorMap: Record<ConnectionStatusType, string> = {
-      connected: styles.indicatorConnected,
-      connecting: styles.indicatorConnecting,
-      reconnecting: styles.indicatorReconnecting,
-      disconnected: styles.indicatorDisconnected,
+      [CONNECTION_STATUS.CONNECTED]: styles.indicatorConnected,
+      [CONNECTION_STATUS.CONNECTING]: styles.indicatorConnecting,
+      [CONNECTION_STATUS.RECONNECTING]: styles.indicatorReconnecting,
+      [CONNECTION_STATUS.DISCONNECTED]: styles.indicatorDisconnected,
     };
     return indicatorMap[status] || styles.indicator;
   };

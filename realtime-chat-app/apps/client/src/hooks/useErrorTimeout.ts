@@ -5,7 +5,7 @@ import { VALIDATION } from '../utils/constants';
  * Hook for managing error message timeouts
  */
 export function useErrorTimeout() {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setErrorTimeout = useCallback(
     (callback: () => void, errorCode?: string) => {

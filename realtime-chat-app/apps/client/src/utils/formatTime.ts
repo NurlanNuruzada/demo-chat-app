@@ -1,5 +1,7 @@
 /**
  * Format timestamp to WhatsApp-style time format (HH:MM)
+ * Note: Uses local timezone. All messages are displayed in the user's local time.
+ * For multi-timezone support, consider standardizing to UTC or adding timezone indicators.
  */
 export function formatTime(timestamp: number): string {
   const date = new Date(timestamp);

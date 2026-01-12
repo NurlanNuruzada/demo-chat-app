@@ -1,3 +1,5 @@
+import { MAX_CONTENT_LENGTH } from '@chat-app/shared';
+
 /**
  * Application constants
  */
@@ -15,7 +17,7 @@ export const SOCKET_CONFIG = {
 
 export const VALIDATION = {
   MAX_USERNAME_LENGTH: 50,
-  MAX_MESSAGE_LENGTH: 700,
+  MAX_MESSAGE_LENGTH: MAX_CONTENT_LENGTH,
   ERROR_TIMEOUT_SHORT: 2000,
   ERROR_TIMEOUT_LONG: 5000,
 } as const;
@@ -25,6 +27,21 @@ export const TEXTAREA_CONFIG = {
   MIN_LINES: 1,
   MAX_LINES: 6,
   HEIGHT_BUFFER: 2,
+} as const;
+
+export const CONNECTION_STATUS = {
+  CONNECTING: 'connecting',
+  CONNECTED: 'connected',
+  RECONNECTING: 'reconnecting',
+  DISCONNECTED: 'disconnected',
+} as const;
+
+export const CONNECTION_STATUS_TEXT = {
+  CONNECTING: 'Connecting...',
+  CONNECTED: 'Connected',
+  RECONNECTING: 'Reconnecting...',
+  DISCONNECTED: 'Not Connected',
+  UNKNOWN: 'Unknown',
 } as const;
 
 export const ERROR_MESSAGES = {

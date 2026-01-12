@@ -1,6 +1,7 @@
 import { createServer, Server as HTTPServer } from 'http';
-import { WebSocketServer } from './websocket/WebSocketServer.ts';
-import { config } from './config/env.ts';
+import { WebSocketServer } from './websocket/WebSocketServer.js';
+import { config } from './config/env.js';
+import { logInfo, logError, sanitizeError } from './utils/logger.js';
 
 /**
  * HTTP and WebSocket server lifecycle management
@@ -10,7 +11,15 @@ export class Server {
   private wsServer: WebSocketServer | null = null;
 
   constructor() {
-    this.httpServer = createServer();
+    this.httpServer = createServer((req, res) => {
+      if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK');
+        return;
+      }
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
+    });
     this.setupGracefulShutdown();
   }
 
@@ -22,21 +31,31 @@ export class Server {
       try {
         // Start HTTP server
         this.httpServer.listen(config.port, () => {
-          console.log(`HTTP server listening on port ${config.port}`);
+          logInfo('HTTP server listening', { port: config.port });
           
           // Start WebSocket server after HTTP server is ready
           this.wsServer = new WebSocketServer(this.httpServer);
-          console.log('WebSocket server started');
+          logInfo('WebSocket server started');
           
           resolve();
         });
 
         this.httpServer.on('error', (error: Error) => {
-          console.error('HTTP server error:', error);
+          const isProduction = config.nodeEnv === 'production';
+          const sanitized = sanitizeError(error, isProduction);
+          logError('HTTP server error', {
+            error: sanitized.message,
+            ...(sanitized.stack && { stack: sanitized.stack }),
+          });
           reject(error);
         });
       } catch (error) {
-        console.error('Failed to start server:', error);
+        const isProduction = config.nodeEnv === 'production';
+        const sanitized = sanitizeError(error, isProduction);
+        logError('Failed to start server', {
+          error: sanitized.message,
+          ...(sanitized.stack && { stack: sanitized.stack }),
+        });
         reject(error);
       }
     });
@@ -53,8 +72,8 @@ export class Server {
    * Setup graceful shutdown handlers
    */
   private setupGracefulShutdown(): void {
-    const shutdown = async (signal: string) => {
-      console.log(`\n${signal} received, shutting down gracefully...`);
+    const shutdown = (signal: string) => {
+      logInfo(`${signal} received, shutting down gracefully`);
       
       // Close WebSocket server
       if (this.wsServer) {
@@ -63,15 +82,15 @@ export class Server {
 
       // Close HTTP server
       this.httpServer.close(() => {
-        console.log('HTTP server closed');
+        logInfo('HTTP server closed');
         process.exit(0);
       });
 
-      // Force close after 10 seconds
+      // Force close after configured timeout
       setTimeout(() => {
-        console.error('Forcefully shutting down...');
+        logError('Forcefully shutting down');
         process.exit(1);
-      }, 10000);
+      }, config.gracefulShutdownTimeout);
     };
 
     process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -88,7 +107,7 @@ export class Server {
       }
 
       this.httpServer.close(() => {
-        console.log('Server stopped');
+        logInfo('Server stopped');
         resolve();
       });
     });
